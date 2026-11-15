@@ -28,7 +28,7 @@ Alle sprites: transparante PNG, zelfde stijl en camerahoek als `archer.png`
 ## Ronde 3 – interface
 - [x] 19. Levelbanner – ontvangen, nog niet verwerkt
 - [x] 20. Voortgangsbalk (20a) en kasteel-icoon (20b) – ontvangen, nog niet verwerkt
-- [ ] 21. Tellerschildje (voor het getal boven het leger)
+- [x] 21. Tellerschildje – ontvangen, nog niet verwerkt
 - [ ] 22. Knop: leeg, blauw met gouden rand
 - [ ] 23. Munt
 - [ ] 24. App-icoon
