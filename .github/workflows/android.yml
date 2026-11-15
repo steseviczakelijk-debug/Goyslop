@@ -1,0 +1,65 @@
+name: Android build
+
+on:
+  push:
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: "4.5"
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Godot and export templates
+        run: |
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          curl -fsSL -o godot.zip "$base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          curl -fsSL -o templates.tpz "$base/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          unzip -q godot.zip -d "$RUNNER_TEMP"
+          mv "$RUNNER_TEMP/Godot_v${GODOT_VERSION}-stable_linux.x86_64" "$RUNNER_TEMP/godot"
+          dest="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          mkdir -p "$dest"
+          unzip -q -j templates.tpz 'templates/android_*' 'templates/version.txt' -d "$dest"
+          rm godot.zip templates.tpz
+
+      - name: Configure Godot for Android
+        run: |
+          mkdir -p "$HOME/.config/godot"
+          cat > "$HOME/.config/godot/editor_settings-${GODOT_VERSION}.tres" <<EOT
+          [gd_resource type="EditorSettings" format=3]
+
+          [resource]
+          export/android/android_sdk_path = "$ANDROID_HOME"
+          export/android/java_sdk_path = "$JAVA_HOME"
+          export/android/debug_keystore = "$GITHUB_WORKSPACE/ci/debug.keystore"
+          export/android/debug_keystore_user = "androiddebugkey"
+          export/android/debug_keystore_pass = "android"
+          EOT
+          sed -i 's/^ *//' "$HOME/.config/godot/editor_settings-${GODOT_VERSION}.tres"
+
+      - name: Smoke test (bot plays 3 levels)
+        run: |
+          "$RUNNER_TEMP/godot" --headless --import
+          "$RUNNER_TEMP/godot" --headless --fixed-fps 60 -- --autoplay --levels=3 2>&1 | tee bot.log
+          if grep -q "SCRIPT ERROR" bot.log; then exit 1; fi
+          test "$(grep -c RESULT bot.log)" -ge 3
+
+      - name: Export APK
+        run: |
+          mkdir -p build
+          "$RUNNER_TEMP/godot" --headless --export-debug "Android" build/goyslop.apk
+          ls -la build
+          test -s build/goyslop.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: goyslop-apk
+          path: build/goyslop.apk
