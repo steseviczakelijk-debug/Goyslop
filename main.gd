@@ -64,6 +64,7 @@ var boss_label: Label3D
 var enemy_mm: MultiMesh
 var bullet_mm: MultiMesh
 var soldier_mm: MultiMesh
+var shadow_mm: MultiMesh
 var seam_mm: MultiMesh
 var merlon_mm: MultiMesh
 var squad_label: Label3D
@@ -126,7 +127,7 @@ func _ready() -> void:
 	for i in BUCKETS:
 		buckets.append(PackedInt32Array())
 	for i in MAX_SHOWN:
-		var r := 0.27 * sqrt(float(i))
+		var r := 0.33 * sqrt(float(i))
 		var a := i * 2.39996
 		formation.append(Vector2(cos(a) * r, sin(a) * r))
 	_build_world()
@@ -148,7 +149,7 @@ func _mat(c: Color, emissive := false) -> StandardMaterial3D:
 	return m
 
 
-func _multimesh(mesh: Mesh, count: int) -> MultiMesh:
+func _multimesh(mesh: Mesh, count: int, shadows := true) -> MultiMesh:
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.mesh = mesh
@@ -157,6 +158,8 @@ func _multimesh(mesh: Mesh, count: int) -> MultiMesh:
 	var inst := MultiMeshInstance3D.new()
 	inst.multimesh = mm
 	inst.custom_aabb = AABB(Vector3(-30, -5, -120), Vector3(60, 30, 160))
+	if not shadows:
+		inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(inst)
 	return mm
 
@@ -264,11 +267,38 @@ func _build_world() -> void:
 		[_capsule(0.27, 0.75, Color.WHITE), Vector3(0, 0.38, 0), Color(0.4, 0.25, 0.15)],
 		[_sphere(0.23), Vector3(0, 0.9, 0), orc],
 	]), MAX_ENEMIES)
-	soldier_mm = _multimesh(_merge([
-		[_capsule(0.21, 0.7, Color.WHITE), Vector3(0, 0.35, 0), Color(0.15, 0.4, 0.95)],
-		[_sphere(0.16), Vector3(0, 0.8, 0), skin],
-		[_sphere(0.2, true), Vector3(0, 0.82, 0), Color(0.75, 0.77, 0.8)],
-	]), MAX_SHOWN)
+	# Soldiers are camera-facing sprites with a soft blob shadow underneath.
+	var grad := Gradient.new()
+	grad.set_color(0, Color(0, 0, 0, 0.45))
+	grad.set_color(1, Color(0, 0, 0, 0))
+	var blob_tex := GradientTexture2D.new()
+	blob_tex.gradient = grad
+	blob_tex.fill = GradientTexture2D.FILL_RADIAL
+	blob_tex.fill_from = Vector2(0.5, 0.5)
+	blob_tex.fill_to = Vector2(1.0, 0.5)
+	blob_tex.width = 64
+	blob_tex.height = 64
+	var blob_mat := _mat(Color(1, 1, 1, 0.99), true)
+	blob_mat.albedo_texture = blob_tex
+	var blob := PlaneMesh.new()
+	blob.size = Vector2(0.75, 0.75)
+	blob.material = blob_mat
+	shadow_mm = _multimesh(blob, MAX_SHOWN, false)
+
+	var archer_tex: Texture2D = load("res://assets/archer.png")
+	var archer_mat := StandardMaterial3D.new()
+	archer_mat.albedo_texture = archer_tex
+	archer_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	archer_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+	archer_mat.alpha_scissor_threshold = 0.5
+	archer_mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	archer_mat.billboard_keep_scale = true
+	var archer := QuadMesh.new()
+	var archer_h := 1.35
+	archer.size = Vector2(archer_h * archer_tex.get_width() / archer_tex.get_height(), archer_h)
+	archer.center_offset = Vector3(0, archer_h * 0.5, 0)
+	archer.material = archer_mat
+	soldier_mm = _multimesh(archer, MAX_SHOWN, false)
 	var bullet := BoxMesh.new()
 	bullet.size = Vector3(0.07, 0.07, 1.0)
 	bullet.material = _mat(Color(1.0, 0.9, 0.55), true)
@@ -512,7 +542,7 @@ func _tick(dt: float) -> void:
 	while next_event < events.size() and events[next_event].s - distance <= SPAWN_AHEAD:
 		_spawn(events[next_event])
 		next_event += 1
-	squad_r = 0.3 + 0.27 * sqrt(float(mini(soldiers, MAX_SHOWN)))
+	squad_r = 0.3 + 0.33 * sqrt(float(mini(soldiers, MAX_SHOWN)))
 
 	fire_timer -= dt
 	if fire_timer <= 0.0:
@@ -692,12 +722,15 @@ func _render() -> void:
 
 	var shown := mini(soldiers, MAX_SHOWN)
 	soldier_mm.visible_instance_count = shown
+	shadow_mm.visible_instance_count = shown
 	for i in shown:
 		var f := formation[i]
-		t.origin = Vector3(clampf(squad_x + f.x, -ROAD_HALF + 0.25, ROAD_HALF - 0.25), 0.0, f.y)
+		t.origin = Vector3(clampf(squad_x + f.x, -ROAD_HALF + 0.3, ROAD_HALF - 0.3), 0.0, f.y)
 		soldier_mm.set_instance_transform(i, t)
+		t.origin.y = 0.03
+		shadow_mm.set_instance_transform(i, t)
 	squad_label.text = str(soldiers)
-	squad_label.position = Vector3(squad_x, 2.2, -squad_r * 0.5)
+	squad_label.position = Vector3(squad_x, 2.4, -squad_r - 0.3)
 
 	var off := fmod(distance, 2.5)
 	for i in SCENERY_ROWS:
