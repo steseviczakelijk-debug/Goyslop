@@ -65,6 +65,8 @@ var enemy_mm: MultiMesh
 var bullet_mm: MultiMesh
 var soldier_mm: MultiMesh
 var shadow_mm: MultiMesh
+var enemy_shadow_mm: MultiMesh
+var blob_mat: StandardMaterial3D
 var seam_mm: MultiMesh
 var merlon_mm: MultiMesh
 var squad_label: Label3D
@@ -218,6 +220,42 @@ func _cone(radius: float, height: float) -> CylinderMesh:
 	return m
 
 
+func _sprite_mesh(path: String, height: float) -> QuadMesh:
+	var tex: Texture2D = load(path)
+	var m := StandardMaterial3D.new()
+	m.albedo_texture = tex
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+	m.alpha_scissor_threshold = 0.5
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	m.billboard_keep_scale = true
+	var quad := QuadMesh.new()
+	quad.size = Vector2(height * tex.get_width() / tex.get_height(), height)
+	quad.center_offset = Vector3(0, height * 0.5, 0)
+	quad.material = m
+	return quad
+
+
+func _blob_mesh(size: float) -> PlaneMesh:
+	if blob_mat == null:
+		var grad := Gradient.new()
+		grad.set_color(0, Color(0, 0, 0, 0.45))
+		grad.set_color(1, Color(0, 0, 0, 0))
+		var tex := GradientTexture2D.new()
+		tex.gradient = grad
+		tex.fill = GradientTexture2D.FILL_RADIAL
+		tex.fill_from = Vector2(0.5, 0.5)
+		tex.fill_to = Vector2(1.0, 0.5)
+		tex.width = 64
+		tex.height = 64
+		blob_mat = _mat(Color(1, 1, 1, 0.99), true)
+		blob_mat.albedo_texture = tex
+	var blob := PlaneMesh.new()
+	blob.size = Vector2(size, size)
+	blob.material = blob_mat
+	return blob
+
+
 func _build_world() -> void:
 	var env := Environment.new()
 	env.background_mode = Environment.BG_COLOR
@@ -261,44 +299,11 @@ func _build_world() -> void:
 	merlon_mm = _multimesh(merlon, SCENERY_ROWS * 2)
 	merlon_mm.visible_instance_count = SCENERY_ROWS * 2
 
-	var skin := Color(0.95, 0.76, 0.6)
-	var orc := Color(0.35, 0.6, 0.2)
-	enemy_mm = _multimesh(_merge([
-		[_capsule(0.27, 0.75, Color.WHITE), Vector3(0, 0.38, 0), Color(0.4, 0.25, 0.15)],
-		[_sphere(0.23), Vector3(0, 0.9, 0), orc],
-	]), MAX_ENEMIES)
-	# Soldiers are camera-facing sprites with a soft blob shadow underneath.
-	var grad := Gradient.new()
-	grad.set_color(0, Color(0, 0, 0, 0.45))
-	grad.set_color(1, Color(0, 0, 0, 0))
-	var blob_tex := GradientTexture2D.new()
-	blob_tex.gradient = grad
-	blob_tex.fill = GradientTexture2D.FILL_RADIAL
-	blob_tex.fill_from = Vector2(0.5, 0.5)
-	blob_tex.fill_to = Vector2(1.0, 0.5)
-	blob_tex.width = 64
-	blob_tex.height = 64
-	var blob_mat := _mat(Color(1, 1, 1, 0.99), true)
-	blob_mat.albedo_texture = blob_tex
-	var blob := PlaneMesh.new()
-	blob.size = Vector2(0.75, 0.75)
-	blob.material = blob_mat
-	shadow_mm = _multimesh(blob, MAX_SHOWN, false)
-
-	var archer_tex: Texture2D = load("res://assets/archer.png")
-	var archer_mat := StandardMaterial3D.new()
-	archer_mat.albedo_texture = archer_tex
-	archer_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	archer_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
-	archer_mat.alpha_scissor_threshold = 0.5
-	archer_mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	archer_mat.billboard_keep_scale = true
-	var archer := QuadMesh.new()
-	var archer_h := 1.35
-	archer.size = Vector2(archer_h * archer_tex.get_width() / archer_tex.get_height(), archer_h)
-	archer.center_offset = Vector3(0, archer_h * 0.5, 0)
-	archer.material = archer_mat
-	soldier_mm = _multimesh(archer, MAX_SHOWN, false)
+	# Units are camera-facing sprites with a soft blob shadow underneath.
+	enemy_shadow_mm = _multimesh(_blob_mesh(0.8), MAX_ENEMIES, false)
+	shadow_mm = _multimesh(_blob_mesh(0.75), MAX_SHOWN, false)
+	enemy_mm = _multimesh(_sprite_mesh("res://assets/orc.png", 1.25), MAX_ENEMIES, false)
+	soldier_mm = _multimesh(_sprite_mesh("res://assets/archer.png", 1.35), MAX_SHOWN, false)
 	var bullet := BoxMesh.new()
 	bullet.size = Vector3(0.07, 0.07, 1.0)
 	bullet.material = _mat(Color(1.0, 0.9, 0.55), true)
@@ -711,9 +716,12 @@ func _finish(win: bool) -> void:
 func _render() -> void:
 	var t := Transform3D.IDENTITY
 	enemy_mm.visible_instance_count = e_count
+	enemy_shadow_mm.visible_instance_count = e_count
 	for i in e_count:
 		t.origin = Vector3(e_x[i], absf(sin(time * 9.0 + i)) * 0.12, e_z[i])
 		enemy_mm.set_instance_transform(i, t)
+		t.origin.y = 0.03
+		enemy_shadow_mm.set_instance_transform(i, t)
 
 	bullet_mm.visible_instance_count = b_count
 	for i in b_count:
