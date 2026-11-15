@@ -75,7 +75,7 @@ const WAVE_MAX := 2.8
 const WAVE_CAP := 350
 # A level is built around the army the perfect route yields. The troll is sized
 # so that an army this far below perfect still just beats him.
-const ALLOWED_DEVIATION := 0.35
+const ALLOWED_DEVIATION := 0.28
 const BOSS_HP_PER_SOLDIER := 75.0  # health one soldier gets through in a boss fight
 const PERFECT_KEEPS := 0.75        # calibration: waves may cost the perfect route at most the rest
 const CALIBRATED_LEVELS := 100     # levels measured in scripts/level_table.gd

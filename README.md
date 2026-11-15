@@ -14,6 +14,7 @@ orkhordes kosten soldaten en aan het eind van elk level wacht een trol.
   https://github.com/steseviczakelijk-debug/Goyslop/releases/download/latest-build/bowbridge.apk
 - **Testbot:** `godot --headless --fixed-fps 60 -- --autoplay --levels=5`
 - **Zware test:** tik in een testbuild twee keer rechts onder de pauzeknop.
+- **Levels voorberekenen:** `godot --headless -s scripts/calibrate.gd` (na elke wijziging aan spelregels)
 - **Balans meten:** `godot --headless -s scripts/bench.gd -- --bot=avg --levels=1-14 --runs=20`
 
 ## Opbouw
@@ -29,6 +30,7 @@ orkhordes kosten soldaten en aan het eind van elk level wacht een trol.
 | `scripts/save_data.gd` | Voortgang op schijf |
 | `scripts/bot.gd` | Automatische spelers van drie niveaus voor tests |
 | `scripts/bench.gd` | Meet hoe vaak een bot elk level wint |
+| `scripts/calibrate.gd` | Speelt per level de perfecte route en schrijft `level_table.gd` |
 | `tools/process_art.py` | Maakt spelklare art uit `assets/raw/` |
 
 Het stappenplan staat in `PLAN.md`.

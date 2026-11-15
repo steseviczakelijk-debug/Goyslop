@@ -99,9 +99,11 @@ func _init() -> void:
 
 
 func reset(level: int) -> void:
-	speed = B.speed_for(level)
-	_load(LevelGen.generate(level), 1)
-	rng.seed = level
+	# A repeated level must play exactly like the one that was measured.
+	var layout := LevelGen.layout_level(level)
+	speed = B.speed_for(layout)
+	_load(LevelGen.generate(layout), 1)
+	rng.seed = layout
 
 
 ## Loads a level that was generated elsewhere (used by calibration).

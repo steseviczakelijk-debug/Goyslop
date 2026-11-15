@@ -9,16 +9,20 @@ per stap. Voor alles wat een plaatje is eerst prompts; beweging gaat in code.
 
 ## Stap 1 – Eerlijk spel (gedaan)
 Goed spelen wordt beloond en verliezen is mogelijk.
-- [x] Trol heeft vaste levens per level; een groot leger wint sneller.
-- [x] Poorten groeien door schieten tot een maximum (de helft van hun waarde
-      erbij, minstens 3).
-- [x] Drie testbots (slecht, gemiddeld, perfect) en een meetscript:
-      `godot --headless -s scripts/bench.gd -- --bot=avg --levels=1-14 --runs=20`
-- [x] Balans afgesteld. Gemeten over level 1–14, 20 keer per level:
-      perfect 280/280, gemiddeld 211/280 (75%), slecht 42/280 (15%, waarvan
-      16/20 op level 1). Baasgevecht: perfect ongeveer 7 s, gemiddeld 11 s.
-- [x] Level 1 en 2 zijn leerlevels: kleinere golven en geen poorten die
-      soldaten afnemen.
+- [x] Elk level is gebouwd rond één perfecte route. `scripts/calibrate.gd` speelt
+      die route per level vooraf en legt in `scripts/level_table.gd` vast hoe
+      zwaar de golven mogen zijn en hoe groot het perfecte leger bij de trol is.
+      Na elke wijziging aan de spelregels opnieuw draaien.
+- [x] De trol is zo sterk dat je hem verslaat met een leger tot 28% onder het
+      perfecte (`ALLOWED_DEVIATION`); dat percentage is afgesteld op de
+      gemiddelde bot.
+- [x] Poortkeuzes liggen dicht bij elkaar (plus tegen plus, x2 tegen een plus
+      die bijna evenveel oplevert, soms twee rode poorten).
+- [x] Poorten hebben geen maximum; elke volgende stap kost 30% meer treffers.
+- [x] Tempo loopt vanaf level 3 met 3% per level op, tot hooguit 1,4 keer.
+- [x] Level 1 en 2 zijn leerlevels. Na level 100 herhalen de levels 21–100.
+- [x] Gemeten (`scripts/bench.gd`): perfecte bot wint alle levels 1–260;
+      gemiddelde bot 79% op level 1–30 en 76% op 31–100; slechte bot 15%.
 
 ## Stap 2 – Winstmoment
 Elke overwinning voelt als een prijs.

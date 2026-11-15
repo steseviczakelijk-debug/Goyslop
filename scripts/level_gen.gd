@@ -15,9 +15,7 @@ const Table = preload("res://scripts/level_table.gd")
 static func generate(level: int, tune := {}) -> Dictionary:
 	# Past the measured levels the layouts repeat; pace and toughness are at
 	# their ceiling by then, so a repeated level plays exactly as measured.
-	var lv := level
-	if lv > B.CALIBRATED_LEVELS:
-		lv = B.CYCLE_FROM_LEVEL + (lv - B.CYCLE_FROM_LEVEL) % (B.CALIBRATED_LEVELS - B.CYCLE_FROM_LEVEL + 1)
+	var lv := layout_level(level)
 	if tune.is_empty() and Table.DATA.has(lv):
 		tune = {"waves": Table.DATA[lv][0], "army": Table.DATA[lv][1]}
 	var wave_scale: float = tune.get("waves", 1.0)
@@ -93,6 +91,14 @@ static func generate(level: int, tune := {}) -> Dictionary:
 ## Only the boss, tough enough to reach the squad: for checking his attack.
 static func boss_only() -> Dictionary:
 	return {"events": [{"s": 30.0, "type": "boss", "hp": 1000000.0}], "length": 30.0}
+
+
+## The measured level whose layout `level` uses: itself up to the end of the
+## table, after that one of the repeating levels.
+static func layout_level(level: int) -> int:
+	if level <= B.CALIBRATED_LEVELS:
+		return level
+	return B.CYCLE_FROM_LEVEL + (level - B.CYCLE_FROM_LEVEL) % (B.CALIBRATED_LEVELS - B.CYCLE_FROM_LEVEL + 1)
 
 
 ## How many growth steps a perfect player shoots out of a gate on the way in.
