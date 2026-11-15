@@ -7,8 +7,11 @@ const Sim = preload("res://scripts/sim.gd")
 
 const FLOOR_PERIOD := 2.5
 const GRASS_PERIOD := 6.0
-const RAIL_LENGTH := 2.0
-const RAIL_COUNT := 100
+const WALL_LENGTH := 240.0
+const WALL_WIDTH := 0.55
+const WALL_HEIGHT := 0.7
+const WALL_TOP_PERIOD := WALL_WIDTH * 3.0    # the capstone picture is 1:3
+const WALL_SIDE_PERIOD := WALL_HEIGHT * 4.0  # the stone strip is 4:1
 const RIVER_PERIOD := 200.0
 const SCENERY_LOOP := 200.0
 const GATE_WIDTH := 3.7
@@ -26,7 +29,7 @@ var trail_mm: MultiMesh
 var soldier_mm: MultiMesh
 var shadow_mm: MultiMesh
 var enemy_shadow_mm: MultiMesh
-var rail_mm: MultiMesh
+var wall_mats: Array = []  # [material, texture shift per metre, along u]
 var blob_mat: StandardMaterial3D
 var floor_mat: StandardMaterial3D
 var grass_mat: StandardMaterial3D
@@ -44,6 +47,7 @@ var shake := 0.0
 var cheering := false
 var puffs: Particles
 var fallen: Particles   # orcs knocked off their feet
+var fallen_archers: Particles
 var sparks: Particles
 var confetti: Particles
 var coins_fx: Particles
@@ -59,6 +63,8 @@ var lost_timer := 0.0
 var boss_mat: ShaderMaterial
 var boss_meshes: Array[QuadMesh] = []   # walking, mace raised, mace down
 var boss_pose_shown := 0
+var boss_quarter := 4
+var boss_hurt := 0.0
 var boss_warning: MeshInstance3D          # red patch where the mace will land
 var boss_sprite: MeshInstance3D
 var boss_bar: MeshInstance3D
@@ -179,15 +185,15 @@ func _sprite_mesh(path: String, height: float, base := 0.0) -> QuadMesh:
 
 
 ## Like _sprite_mesh, but with the unit shader so it can flash, lean and switch
-## to a second pose (same size picture) when `pose_path` is given.
-func _unit_mesh(path: String, height: float, pose_path := "") -> QuadMesh:
+## pose. `poses` is how many pictures sit side by side in the texture.
+func _unit_mesh(path: String, height: float, poses := 1) -> QuadMesh:
 	var tex: Texture2D = load(path)
 	var m := ShaderMaterial.new()
 	m.shader = preload("res://scripts/unit.gdshader")
 	m.set_shader_parameter("tex", tex)
-	m.set_shader_parameter("tex2", load(pose_path) if pose_path != "" else tex)
+	m.set_shader_parameter("poses", float(poses))
 	var quad := QuadMesh.new()
-	quad.size = Vector2(height * tex.get_width() / tex.get_height(), height)
+	quad.size = Vector2(height * tex.get_width() / poses / tex.get_height(), height)
 	quad.center_offset = Vector3(0, height * 0.5, 0)
 	quad.material = m
 	return quad
@@ -291,9 +297,27 @@ func _build_world() -> void:
 	deck.position.z = -100
 	floor_mat = deck.mesh.material
 
-	# Railings: a row of chunky posts along each side of the bridge.
-	rail_mm = _multimesh(_sprite_mesh("res://assets/rail_post.png", 1.25), RAIL_COUNT * 2)
-	rail_mm.visible_instance_count = RAIL_COUNT * 2
+	# A low stone wall along both edges, built from real faces so it recedes
+	# correctly: capstones on top, stone blocks on the side facing the road.
+	var top_mat := _unshaded(load("res://assets/wall_top.png"))
+	top_mat.uv1_scale = Vector3(1, WALL_LENGTH / WALL_TOP_PERIOD, 1)
+	wall_mats.append([top_mat, -1.0 / WALL_TOP_PERIOD, false])
+	for side in [-1.0, 1.0]:
+		var top := PlaneMesh.new()
+		top.size = Vector2(WALL_WIDTH, WALL_LENGTH)
+		top.material = top_mat
+		_instance(top, Vector3(side * (B.ROAD_HALF + WALL_WIDTH * 0.5), WALL_HEIGHT, -100))
+		var face_mat := _unshaded(load("res://assets/wall_side.png"))
+		face_mat.albedo_color = Color(0.82, 0.8, 0.8)
+		face_mat.uv1_scale = Vector3(WALL_LENGTH / WALL_SIDE_PERIOD, 1, 1)
+		# The face is turned to look at the road, so its texture runs the other
+		# way along the bridge on the left than on the right.
+		wall_mats.append([face_mat, side / WALL_SIDE_PERIOD, true])
+		var face := QuadMesh.new()
+		face.size = Vector2(WALL_LENGTH, WALL_HEIGHT)
+		face.material = face_mat
+		var inst := _instance(face, Vector3(side * B.ROAD_HALF, WALL_HEIGHT * 0.5, -100))
+		inst.rotation.y = -side * PI * 0.5
 
 	# Roadside scenery loops forever as the level scrolls.
 	var rng := RandomNumberGenerator.new()
@@ -314,8 +338,8 @@ func _build_world() -> void:
 	# Units are camera-facing sprites with a soft blob shadow underneath.
 	enemy_shadow_mm = _multimesh(_blob_mesh(0.8), B.MAX_ENEMIES)
 	shadow_mm = _multimesh(_blob_mesh(0.75), B.MAX_SHOWN)
-	enemy_mm = _multimesh(_unit_mesh("res://assets/orc.png", 1.25, "res://assets/orc_step.png"), B.MAX_ENEMIES, true)
-	soldier_mm = _multimesh(_unit_mesh("res://assets/archer.png", 1.35, "res://assets/archer_shot.png"), B.MAX_SHOWN, true)
+	enemy_mm = _multimesh(_unit_mesh("res://assets/orc.png", 1.25, 2), B.MAX_ENEMIES, true)
+	soldier_mm = _multimesh(_unit_mesh("res://assets/archer.png", 1.45, 4), B.MAX_SHOWN, true)
 	slot_recoil.resize(B.MAX_SHOWN)
 	slot_pop.resize(B.MAX_SHOWN)
 	slot_x.resize(B.MAX_SHOWN)
@@ -359,7 +383,7 @@ func _build_world() -> void:
 	_instance(_blob_mesh(5.0), Vector3(0, 0.04, 0), boss_node)
 	# The three troll pictures are drawn at different zoom levels; these heights
 	# keep his body the same size in all of them.
-	var troll := _unit_mesh("res://assets/troll.png", 5.6, "res://assets/troll_step.png")
+	var troll := _unit_mesh("res://assets/troll.png", 5.6, 3)
 	var smash := _unit_mesh("res://assets/troll_smash.png", 5.35)
 	boss_meshes = [troll, _unit_mesh("res://assets/troll_windup.png", 6.5), smash]
 	boss_mat = troll.material
@@ -385,6 +409,9 @@ func _build_world() -> void:
 	fallen = _particles("res://assets/orc_fall.png", 120)
 	fallen.gravity = 16.0
 	fallen.shrinks = true
+	fallen_archers = _particles("res://assets/archer_fall.png", 40)
+	fallen_archers.gravity = 16.0
+	fallen_archers.shrinks = true
 	puffs = _particles("res://assets/puff.png", 300)
 	puffs.shrinks = true
 	sparks = _particles("res://assets/spark.png", 80)
@@ -485,7 +512,10 @@ func render(sim: Sim, time: float) -> void:
 		slot_x[i] = lerpf(slot_x[i], sim.squad_x + f.x, follow)
 		t.origin = Vector3(clampf(slot_x[i], -B.ROAD_HALF + 0.3, B.ROAD_HALF - 0.3), hop, f.y + recoil * 0.12)
 		soldier_mm.set_instance_transform(i, t)
-		soldier_mm.set_instance_custom_data(i, Color(pop * 0.8, sin(time * 7.0 + i * 1.3) * 0.04, 1.0 if recoil > 0.25 else 0.0, 0))
+		# Poses: 0 aiming, 1 just released, 2 other foot forward, 3 cheering.
+		var stride := sin(time * 7.0 + i * 1.3)
+		var pose := 3.0 if cheering else (1.0 if recoil > 0.25 else (2.0 if stride > 0.0 else 0.0))
+		soldier_mm.set_instance_custom_data(i, Color(pop * 0.8, stride * 0.04, pose, 0))
 		t.basis = Basis.IDENTITY
 		t.origin.y = 0.03
 		shadow_mm.set_instance_transform(i, t)
@@ -508,12 +538,12 @@ func render(sim: Sim, time: float) -> void:
 	water_mat.uv1_offset.x = fposmod(time * 0.03, 1.0)
 	river.position.z = fposmod(sim.distance + 70.0, RIVER_PERIOD) - 170.0
 
-	var off := fmod(sim.distance, RAIL_LENGTH)
-	for i in RAIL_COUNT:
-		t.origin = Vector3(-B.ROAD_HALF - 0.35, 0, 14.0 - i * RAIL_LENGTH + off)
-		rail_mm.set_instance_transform(i * 2, t)
-		t.origin.x = B.ROAD_HALF + 0.35
-		rail_mm.set_instance_transform(i * 2 + 1, t)
+	for w in wall_mats:
+		var shift := fposmod(sim.distance * w[1], 1.0)
+		if w[2]:
+			w[0].uv1_offset.x = shift
+		else:
+			w[0].uv1_offset.y = shift
 
 	for entry in scenery:
 		var mm: MultiMesh = entry[0]
@@ -532,6 +562,11 @@ func render(sim: Sim, time: float) -> void:
 		var frac := clampf(sim.boss_hp / sim.boss_max, 0.0, 1.0)
 		boss_bar.scale.x = maxf(frac, 0.001)
 		boss_bar.position.x = -(1.0 - frac) * 1.55
+		var quarter := int(ceilf(frac * 4.0))
+		if quarter < boss_quarter:
+			boss_hurt = 0.45
+		boss_quarter = quarter
+		boss_hurt = maxf(0.0, boss_hurt - dt)
 		if sim.boss_pose != boss_pose_shown:
 			boss_pose_shown = sim.boss_pose
 			boss_sprite.mesh = boss_meshes[boss_pose_shown]
@@ -543,7 +578,9 @@ func render(sim: Sim, time: float) -> void:
 			var step := sin(time * 3.2)
 			boss_sprite.position = Vector3(0, absf(step) * 0.3, 0)
 			boss_mat.set_shader_parameter("tilt", step * 0.03)
-			boss_mat.set_shader_parameter("pose", 1.0 if step > 0.0 else 0.0)
+			# Poses: 0 and 1 are his two steps, 2 is the flinch shown briefly each
+			# time he loses another quarter of his health.
+			boss_mat.set_shader_parameter("pose", 2.0 if boss_hurt > 0.0 else (1.0 if step > 0.0 else 0.0))
 			if step * boss_step < 0.0 and sim.boss_z > -40.0:
 				add_shake(0.12)
 				stomped = true
@@ -587,6 +624,9 @@ func apply_fx(sim: Sim) -> void:
 			"lost":
 				lost_pending += e[3]
 				add_shake(0.06)
+				# A few of the lost archers are thrown back toward the camera.
+				for k in mini(e[3], 3):
+					fallen_archers.emit(Vector3(e[1] + randf_range(-0.6, 0.6), 0.3, e[2] + 0.4), Vector3(randf_range(-3.0, 3.0), randf_range(5.0, 7.0), randf_range(2.0, 4.0)), 0.55, 1.6, Color.WHITE, 0.0, randf_range(-6.0, 6.0))
 				for k in 4:
 					puffs.emit(Vector3(e[1], 0.7, e[2]), Vector3(randf_range(-2.0, 2.0), randf_range(1.0, 3.0), randf_range(-1.0, 1.0)), 0.45, 0.8, Color(1.0, 0.4, 0.35, 0.95), 0.0, randf_range(-2.0, 2.0))
 			"gate":
@@ -632,6 +672,8 @@ func celebrate(sim: Sim) -> void:
 func end_celebration() -> void:
 	cheering = false
 	boss_pose_shown = 0
+	boss_quarter = 4
+	boss_hurt = 0.0
 	boss_sprite.mesh = boss_meshes[0]
 	boss_mat = boss_meshes[0].material
 	boss_warning.visible = false
@@ -652,6 +694,7 @@ func _float_text(text: String, at: Vector3, color: Color) -> void:
 
 func _update_effects(dt: float) -> void:
 	fallen.update(dt)
+	fallen_archers.update(dt)
 	puffs.update(dt)
 	sparks.update(dt)
 	confetti.update(dt)

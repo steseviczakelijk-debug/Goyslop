@@ -75,36 +75,28 @@ def key_checkerboard(im):
     return Image.fromarray(out)
 
 
-def unmix_from_white(im, color=(255, 45, 30)):
-    """Recover transparency for a glowing object painted on a white backdrop.
+def pose_sheet(poses, dst, height, pad=6):
+    """Several poses of one figure side by side in one picture.
 
-    Each pixel is treated as `color` laid over white; how far it is from white
-    gives the opacity. Works for single-hue glows, not for full-colour figures.
+    All poses are cropped by the same box so the figure does not jump when the
+    game switches between them. Returns how much taller the shared box is than
+    the first pose alone, so the game can keep the figure the same size.
     """
-    a = np.array(im.convert("RGB")).astype(np.float32)
-    alpha = np.clip(1.25 * (1.0 - a[..., 1:].min(axis=2) / 246.0), 0.0, 1.0)
-    alpha[alpha < 0.06] = 0.0
-    rgb = np.clip((a - (1.0 - alpha[..., None]) * 250.0) / np.maximum(alpha[..., None], 0.05), 0, 255)
-    rgb = np.where(alpha[..., None] > 0, rgb, np.array(color, np.float32))
-    # A light blur irons out the checkerboard that shows through the glow.
-    from PIL import ImageFilter
-    soft = np.array(Image.fromarray((alpha * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(7)))
-    return Image.fromarray(np.dstack([rgb, soft]).astype(np.uint8))
-
-
-def pose_pair(first, second, dst_first, dst_second, height):
-    """Two poses of one figure, cropped by the same box so they line up."""
-    a = np.array(first)
-    b = np.array(second)
-    a[a[..., 3] < 60] = 0
-    b[b[..., 3] < 60] = 0
-    first, second = Image.fromarray(a), Image.fromarray(b)
-    box_a, box_b = first.getbbox(), second.getbbox()
-    box = (min(box_a[0], box_b[0]), min(box_a[1], box_b[1]), max(box_a[2], box_b[2]), max(box_a[3], box_b[3]))
-    for im, dst in ((first, dst_first), (second, dst_second)):
-        out = fit(im.crop(box), height=height)
-        out.save(OUT / dst)
-        print(dst, out.size)
+    cleaned = []
+    for im in poses:
+        a = np.array(im)
+        a[a[..., 3] < 60] = 0
+        cleaned.append(Image.fromarray(a))
+    boxes = [im.getbbox() for im in cleaned]
+    box = (min(b[0] for b in boxes), min(b[1] for b in boxes), max(b[2] for b in boxes), max(b[3] for b in boxes))
+    cells = [fit(im.crop(box), height=height) for im in cleaned]
+    w = cells[0].width + pad * 2
+    sheet = Image.new("RGBA", (w * len(cells), height), (0, 0, 0, 0))
+    for i, cell in enumerate(cells):
+        sheet.paste(cell, (i * w + pad, 0))
+    sheet.save(OUT / dst)
+    grow = (box[3] - box[1]) / (boxes[0][3] - boxes[0][1])
+    print(dst, sheet.size, "poses", len(cells), "height x%.3f" % grow)
 
 
 def recolor_blue(im, hue):
@@ -123,13 +115,17 @@ def recolor_blue(im, hue):
 
 def main():
     # Units
-    pose_pair(load("01_archer.png"), key_black(load("30b_archer_shot.png")), "archer.png", "archer_shot.png", 320)
-    pose_pair(load("02_orc.png"), key_black(load("30a_orc_step.png")), "orc.png", "orc_step.png", 256)
-    pose_pair(load("03_troll.png"), key_checkerboard(load("36_troll_step.png")), "troll.png", "troll_step.png", 512)
+    # Pose order matters: the game refers to poses by their position.
+    pose_sheet([load("01_archer.png"), key_black(load("30b_archer_shot.png")), load("40a_archer_step.png"),
+                load("40b_archer_cheer.png")], "archer.png", 320)
+    pose_sheet([load("02_orc.png"), key_black(load("30a_orc_step.png"))], "orc.png", 256)
+    pose_sheet([load("03_troll.png"), key_checkerboard(load("36_troll_step.png")), load("41_troll_hurt.png")],
+               "troll.png", 512)
     sprite("35a_troll_windup.png", "troll_windup.png", height=512)
     sprite("35b_troll_smash.png", "troll_smash.png", height=512)
     sprite("08_arrow.png", "arrow.png", height=192)
     sprite("34_orc_fall.png", "orc_fall.png", height=256)
+    sprite("40c_archer_fall.png", "archer_fall.png", height=256)
 
     # Gates: one shape, three colours
     gate = sprite("04_gate_blue.png", "gate_blue.png", width=512)
@@ -156,13 +152,14 @@ def main():
 
     # Effects
     sprite("25_puff.png", "puff.png", height=128)
-    ring = unmix_from_white(load("37_warning_ring.png"))
+    ring = np.array(load("37_warning_ring.png"))
+    ring[ring[..., 3] < 70] = 0  # drop the ragged outer glow
+    ring = Image.fromarray(ring)
     ring = ring.crop(ring.getbbox())
     side = max(ring.size)
-    square = Image.new("RGBA", (side, side), (255, 45, 30, 0))
+    square = Image.new("RGBA", (side, side), (255, 20, 10, 0))
     square.paste(ring, ((side - ring.width) // 2, (side - ring.height) // 2))
     square.resize((256, 256), Image.LANCZOS).save(OUT / "warning_ring.png")
-    sprite("26_spark.png", "spark.png", height=128)
     sheet = load("27_confetti.png")
     atlas = Image.new("RGBA", (96 * 3, 96 * 2), (0, 0, 0, 0))
     for i in range(6):
@@ -172,7 +169,11 @@ def main():
         piece.thumbnail((88, 88), Image.LANCZOS)
         atlas.paste(piece, (col * 96 + (96 - piece.width) // 2, row * 96 + (96 - piece.height) // 2))
     atlas.save(OUT / "confetti.png")
-    sprite("31_rail_post.png", "rail_post.png", height=256)
+
+    # Bridge wall: the stone strip without its white margins, and the capstones.
+    side = load("42a_wall_side.png").convert("RGB").crop((0, 221, 1774, 664))
+    side.resize((1024, 256), Image.LANCZOS).save(OUT / "wall_side.png")
+    load("42b_wall_top.png").convert("RGB").resize((128, 384), Image.LANCZOS).save(OUT / "wall_top.png")
 
     # Interface
     sprite("28_menu_panel.png", "ui_menu_panel.png", width=640)

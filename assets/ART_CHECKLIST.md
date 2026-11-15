@@ -42,18 +42,19 @@ spelklare bestanden in `assets/` van.
 - [x] 27. Confetti, zes stukjes – `confetti.png`
 - [x] 28. Menupaneel – `ui_menu_panel.png`
 - [x] 29. Pauze-icoon – `ui_pause.png`
-- [x] 30. Tweede pose: ork (stap) en boogschutter (na het schot) – `orc_step.png`, `archer_shot.png`
+- [x] 30. Tweede pose: ork (stap) en boogschutter (na het schot) – nu samen met de andere poses in `orc.png` en `archer.png`
 - [x] 31. Paal voor de brugleuning – `rail_post.png` (vervangt nummer 10)
 
 - [x] 34. Ork valt achterover – `orc_fall.png`
 - [x] 35. Trol haalt uit: knots omhoog en knots naar beneden – `troll_windup.png`, `troll_smash.png`
-- [x] 36. Trol, tweede stap – `troll_step.png`
+- [x] 36. Trol, tweede stap (in `troll.png`)
 
 - [x] 37. Waarschuwingsring voor de klap van de trol – `warning_ring.png`
 - [x] 38. Vulling van de voortgangsbalk – `ui_progress_fill.png`
-- [ ] 39. Titelbanners: winst binnen (`ui_title_victory.png`), verlies nog te doen
-- [ ] 40. Boogschutter: tweede stap, juichen, vallen
-- [ ] 41. Trol geraakt
+- [x] 39. Titelbanners voor winst en verlies – `ui_title_victory.png`, `ui_title_defeat.png`
+- [x] 40. Boogschutter: tweede stap en juichen (in `archer.png`), vallen – `archer_fall.png`
+- [x] 41. Trol geraakt (in `troll.png`)
+- [x] 42. Stenen brugmuur, zijkant en bovenkant – `wall_side.png`, `wall_top.png` (vervangt de palen van nummer 31)
 
 ## Ronde 5 – later
 - [ ] 32. Sterke vijand (gepantserde ork)

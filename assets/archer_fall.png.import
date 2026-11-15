@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bqeuqhfogw82j"
-path="res://.godot/imported/rail_post.png-9bd5333f50a49077a4ef251679559b99.ctex"
+uid="uid://dav788dxo8ydc"
+path="res://.godot/imported/archer_fall.png-ba524d8be33d5f6611a0b74c07e4559c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/rail_post.png"
-dest_files=["res://.godot/imported/rail_post.png-9bd5333f50a49077a4ef251679559b99.ctex"]
+source_file="res://assets/archer_fall.png"
+dest_files=["res://.godot/imported/archer_fall.png-ba524d8be33d5f6611a0b74c07e4559c.ctex"]
 
 [params]
 

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://wisrmiwrkdip"
-path="res://.godot/imported/orc_step.png-966b1ff1cfac8c1bd29640c85312cc28.ctex"
+uid="uid://buvxfwpw713sh"
+path="res://.godot/imported/ui_title_defeat.png-ca907f6a3d56fc4c50de5889ebafd76c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/orc_step.png"
-dest_files=["res://.godot/imported/orc_step.png-966b1ff1cfac8c1bd29640c85312cc28.ctex"]
+source_file="res://assets/ui_title_defeat.png"
+dest_files=["res://.godot/imported/ui_title_defeat.png-ca907f6a3d56fc4c50de5889ebafd76c.ctex"]
 
 [params]
 
