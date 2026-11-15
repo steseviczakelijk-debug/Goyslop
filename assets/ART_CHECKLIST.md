@@ -7,7 +7,7 @@ Alle sprites: transparante PNG, zelfde stijl en camerahoek als `archer.png`
 - [x] 1. Boogschutter (van achteren) – `archer.png`
 - [x] 2. Ork, gewone vijand (van voren) – `orc.png`
 - [x] 3. Trol, eindbaas (van voren) – `troll.png`
-- [ ] 4. Pluspoort: blauw banier, zonder getal
+- [x] 4. Pluspoort: blauw banier, zonder getal – ontvangen, nog niet verwerkt
 - [ ] 5. Minpoort: rood banier, zonder getal
 - [ ] 6. Vermenigvuldigpoort: gouden banier, zonder getal
 - [ ] 7. Poortpaal (hout met gouden knop)
