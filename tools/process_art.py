@@ -188,6 +188,24 @@ def main():
     sprite("28_menu_panel.png", "ui_menu_panel.png", width=640)
     sprite("29_pause_icon.png", "ui_pause.png", height=96)
     sprite("38_progress_fill.png", "ui_progress_fill.png", height=48)
+
+    # Win screen
+    stars = load("45_stars.png")
+    half = stars.width // 2
+    for i, name in enumerate(("ui_star_full.png", "ui_star_empty.png")):
+        star = fit(clean(stars.crop((i * half, 0, (i + 1) * half, stars.height))), height=160)
+        star.save(OUT / name)
+    sprite("46a_wheel_rim.png", "ui_wheel_rim.png", height=512)
+    sprite("46b_wheel_hub.png", "ui_wheel_hub.png", height=128)
+    sprite("46c_wheel_pointer.png", "ui_wheel_pointer.png", height=160)
+    # Light rays: fade smoothly to nothing toward the edge, which also removes
+    # the ragged border the generator left.
+    rays = np.array(load("46d_rays.png")).astype(np.float32)
+    h, w = rays.shape[:2]
+    yy, xx = np.mgrid[0:h, 0:w]
+    dist = np.hypot(xx - w / 2, yy - h / 2) / (w / 2)
+    rays[..., 3] *= np.clip((0.82 - dist) / 0.5, 0.0, 1.0)
+    Image.fromarray(rays.astype(np.uint8)).resize((512, 512), Image.LANCZOS).save(OUT / "ui_rays.png")
     sprite("39a_victory_banner.png", "ui_title_victory.png", width=768)
     if (RAW / "39b_defeat_banner.png").exists():
         sprite("39b_defeat_banner.png", "ui_title_defeat.png", width=768)

@@ -32,7 +32,8 @@ Elke overwinning voelt als een prijs.
 - [x] Rad na de baas (x1 x2 x1 x3 x2 x1 x4 x5, elk vak even waarschijnlijk);
       tikken om te draaien; de bonus wordt bij je munten geteld.
 - [x] De knop "volgende level" verschijnt pas na het rad.
-- [ ] Art: sterren, rad, wijzer en lichtstralen zijn nu in code getekend.
+- [x] Art: sterren, rand, naaf, wijzer en draaiende lichtstralen. De vakken en
+      getallen van het rad blijven in code.
 
 ## Stap 3 – Verrassingen
 Tijdens het level gebeurt iets onverwachts.

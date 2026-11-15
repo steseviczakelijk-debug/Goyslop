@@ -3,7 +3,8 @@ extends Control
 ## survived, coins counting up, then a wheel that multiplies them. The wheel is
 ## honest: every segment is equally likely, so what you see is what you get.
 ##
-## Stars, wheel and pointer are drawn in code for now; replace with art later.
+## The coloured segments and their numbers are drawn in code so they always
+## match the outcome; the rim, hub, pointer and stars are art on top.
 
 signal sfx(sound: String, pitch: float)
 signal finished(multiplier: int)
@@ -18,31 +19,19 @@ const INK := Color(0.05, 0.1, 0.3)
 var phase := Phase.IDLE
 var earned := 0
 var shown := -1
-var stars: Array[StarIcon] = []
+var stars: Array[TextureRect] = []
+var star_full: Texture2D = preload("res://assets/ui_star_full.png")
+var star_empty: Texture2D = preload("res://assets/ui_star_empty.png")
 var coin_row: Control
 var count_label: Label
 var wheel: Wheel
-var pointer: Pointer
+var rays: TextureRect
+var pointer: TextureRect
 var prompt: Label
 var mult_label: Label
 var sequence: Tween
 var last_segment := 0
 var rng := RandomNumberGenerator.new()
-
-
-class StarIcon extends Control:
-	var filled := false
-
-	func _draw() -> void:
-		var points := PackedVector2Array()
-		var c := size * 0.5
-		for i in 10:
-			var r := size.x * (0.5 if i % 2 == 0 else 0.22)
-			var a := -PI * 0.5 + i * PI / 5.0
-			points.append(c + Vector2(cos(a), sin(a)) * r)
-		draw_colored_polygon(points, Color(1.0, 0.8, 0.15) if filled else Color(0.08, 0.14, 0.35, 0.85))
-		points.append(points[0])
-		draw_polyline(points, Color(0.5, 0.3, 0.0) if filled else Color(1.0, 0.8, 0.15), 4.0, true)
 
 
 class Wheel extends Control:
@@ -51,7 +40,7 @@ class Wheel extends Control:
 
 	func _draw() -> void:
 		var c := size * 0.5
-		var r := size.x * 0.5
+		var r := size.x * 0.5 * 0.88  # the segments tuck under the rim
 		var step := TAU / segments.size()
 		var font := get_theme_default_font()
 		for i in segments.size():
@@ -59,7 +48,7 @@ class Wheel extends Control:
 			var points := PackedVector2Array([c])
 			for k in 13:
 				var a := a0 + step * k / 12.0
-				points.append(c + Vector2(cos(a), sin(a)) * (r - 8.0))
+				points.append(c + Vector2(cos(a), sin(a)) * r)
 			draw_colored_polygon(points, colors[segments[i]])
 			var mid := a0 + step * 0.5
 			draw_set_transform(c + Vector2(cos(mid), sin(mid)) * r * 0.64, mid + PI * 0.5)
@@ -68,27 +57,17 @@ class Wheel extends Control:
 			draw_string_outline(font, Vector2(-w * 0.5, 14), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 40, 8, Color(0.05, 0.1, 0.3))
 			draw_string(font, Vector2(-w * 0.5, 14), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 40, Color.WHITE)
 			draw_set_transform(Vector2.ZERO, 0.0)
-		draw_arc(c, r - 5.0, 0.0, TAU, 64, Color(1.0, 0.8, 0.15), 10.0, true)
-		draw_circle(c, 18.0, Color(1.0, 0.8, 0.15))
-		draw_circle(c, 9.0, Color(0.5, 0.3, 0.0))
-
-
-class Pointer extends Control:
-	func _draw() -> void:
-		var w := size.x
-		var points := PackedVector2Array([Vector2(0, 0), Vector2(w, 0), Vector2(w * 0.5, size.y)])
-		draw_colored_polygon(points, Color(0.95, 0.2, 0.15))
-		points.append(points[0])
-		draw_polyline(points, Color(0.05, 0.1, 0.3), 4.0, true)
 
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	visible = false
+	rays = _picture(preload("res://assets/ui_rays.png"))
+	_place(rays, Vector2(0, 150), Vector2(900, 900))
 	for i in 3:
-		var star := StarIcon.new()
-		_place(star, Vector2((i - 1) * 104.0, -62.0 - (16.0 if i == 1 else 0.0)), Vector2(92, 92))
+		var star := _picture(star_empty)
+		_place(star, Vector2((i - 1) * 108.0, -62.0 - (16.0 if i == 1 else 0.0)), Vector2(104, 100))
 		stars.append(star)
 
 	coin_row = Control.new()
@@ -108,16 +87,36 @@ func _ready() -> void:
 	wheel = Wheel.new()
 	wheel.segments = SEGMENTS
 	wheel.colors = COLORS
-	_place(wheel, Vector2(0, 222), Vector2(290, 290))
-	pointer = Pointer.new()
-	_place(pointer, Vector2(0, 72), Vector2(40, 44))
+	_place(wheel, Vector2(0, 228), Vector2(310, 310))
+	var rim := _picture(preload("res://assets/ui_wheel_rim.png"))
+	wheel.add_child(rim)
+	rim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var hub := _picture(preload("res://assets/ui_wheel_hub.png"))
+	wheel.add_child(hub)
+	hub.set_anchors_preset(Control.PRESET_CENTER)
+	hub.offset_left = -36
+	hub.offset_right = 36
+	hub.offset_top = -36
+	hub.offset_bottom = 36
+	pointer = _picture(preload("res://assets/ui_wheel_pointer.png"))
+	_place(pointer, Vector2(0, 78), Vector2(52, 72))
+	pointer.pivot_offset = Vector2(26, 14)  # it swings around its gold cap
 
 	prompt = _label(40, self)
-	_place(prompt, Vector2(0, 408), Vector2(600, 56))
+	_place(prompt, Vector2(0, 420), Vector2(600, 56))
 	prompt.text = "TAP TO SPIN"
 	mult_label = _label(150, self)
-	_place(mult_label, Vector2(0, 222), Vector2(400, 180))
+	_place(mult_label, Vector2(0, 228), Vector2(400, 180))
 	mult_label.add_theme_color_override("font_color", GOLD)
+
+
+func _picture(tex: Texture2D) -> TextureRect:
+	var t := TextureRect.new()
+	t.texture = tex
+	t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return t
 
 
 ## Puts `node` at `center`, measured from the middle of the screen.
@@ -166,15 +165,15 @@ func start(star_count: int, coins: int, seed_value: int) -> void:
 	_set_count(0)
 	wheel.rotation = 0.0
 	last_segment = 0
-	for node in [wheel, pointer, prompt, mult_label]:
+	for node in [wheel, pointer, prompt, mult_label, rays]:
 		node.scale = Vector2.ZERO
 	for i in 3:
-		stars[i].filled = i < star_count
+		stars[i].texture = star_full if i < star_count else star_empty
 		stars[i].scale = Vector2.ZERO
-		stars[i].queue_redraw()
 	coin_row.scale = Vector2.ZERO
 
 	sequence = create_tween()
+	sequence.tween_property(rays, "scale", Vector2.ONE, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	for i in 3:
 		sequence.tween_callback(_star_sound.bind(i, star_count))
 		sequence.tween_property(stars[i], "scale", Vector2.ONE, 0.28).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
@@ -230,7 +229,8 @@ func _landed(multiplier: int) -> void:
 		finished.emit(multiplier))
 
 
-func _process(_dt: float) -> void:
+func _process(dt: float) -> void:
+	rays.rotation += dt * 0.35
 	if phase == Phase.SPINNING:
 		var segment := int(floor(-wheel.rotation / (TAU / SEGMENTS.size())))
 		if segment != last_segment:
