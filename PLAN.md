@@ -94,7 +94,9 @@ landen, daarna opschalen of naar een uitgever met de cijfers.
   bestaande sprites.
 - Extra frames alleen waar code niet volstaat. Eerst één proef (ork, twee frames)
   om te zien of de generator het figuur consistent houdt.
-- De leuning is vervangen door losse palen die rechtop staan.
+- De leuning is een lage stenen muur van echte 3D-vlakken met eigen texturen; de
+  brug loopt nu over de volle lengte over water.
+- Lettertype: Lilita One (Open Font License, licentie in assets/fonts/OFL.txt).
 - Werkwijze: voor alles wat een plaatje is eerst prompts vragen; beweging in code.
 - Per nieuwe sprite dezelfde stijlprompt en dezelfde referentie-afbeelding.
 

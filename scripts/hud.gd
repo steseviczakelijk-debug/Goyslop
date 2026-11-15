@@ -31,6 +31,7 @@ var menu_button: TextureButton
 var menu_buttons := {}  # caption -> button, for the touch self-check
 var vibrate_on := true
 var perf_timer := 0.0
+var perf_on := false  # the readout stays hidden until its corner is tapped
 
 
 func _hud_label(parent: Control, size: int, color := Color.WHITE, outline := true) -> Label:
@@ -158,7 +159,10 @@ func _ready() -> void:
 		perf_button.add_theme_font_size_override("font_size", 22)
 		perf_button.add_theme_constant_override("outline_size", 6)
 		perf_button.add_theme_color_override("font_outline_color", INK)
-		perf_button.pressed.connect(func(): stress_requested.emit())
+		perf_button.pressed.connect(func():
+			if perf_on:
+				stress_requested.emit()
+			perf_on = true)
 		root.add_child(perf_button)
 		perf_button.anchor_left = 1.0
 		perf_button.anchor_right = 1.0
@@ -176,7 +180,7 @@ func show_overlay(title: String, button: String, sub: String) -> void:
 	title_banner.visible = title != "" and ResourceLoader.exists(ribbon)
 	if title_banner.visible:
 		title_banner.texture = load(ribbon)
-	msg_label.add_theme_font_size_override("font_size", 62 if title_banner.visible else 100)
+	msg_label.add_theme_font_size_override("font_size", 70 if title_banner.visible else 100)
 	button_label.text = button
 	sub_label.text = sub
 
@@ -200,7 +204,7 @@ func set_coins(coins: int) -> void:
 
 ## Shows frames per second and unit counts; tapping it starts the stress level.
 func update_perf(dt: float, enemies: int, arrows: int) -> void:
-	if perf_button == null:
+	if perf_button == null or not perf_on:
 		return
 	perf_timer -= dt
 	if perf_timer <= 0.0:
