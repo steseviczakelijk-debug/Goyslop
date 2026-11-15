@@ -6,7 +6,7 @@ Alle sprites: transparante PNG, zelfde stijl en camerahoek als `archer.png`
 ## Ronde 1 – speelveld
 - [x] 1. Boogschutter (van achteren) – `archer.png`
 - [x] 2. Ork, gewone vijand (van voren) – `orc.png`
-- [ ] 3. Trol, eindbaas (van voren)
+- [x] 3. Trol, eindbaas (van voren) – `troll.png`
 - [ ] 4. Pluspoort: blauw banier, zonder getal
 - [ ] 5. Minpoort: rood banier, zonder getal
 - [ ] 6. Vermenigvuldigpoort: gouden banier, zonder getal

@@ -314,15 +314,16 @@ func _build_world() -> void:
 
 	boss_node = Node3D.new()
 	var body := MeshInstance3D.new()
-	body.mesh = _merge([
-		[_capsule(1.3, 3.6, Color.WHITE), Vector3(0, 1.8, 0), Color(0.3, 0.22, 0.16)],
-		[_sphere(0.95), Vector3(0, 4.0, 0), Color(0.3, 0.5, 0.18)],
-		[_cone(0.25, 0.9), Vector3(-0.6, 5.0, 0), Color(0.9, 0.88, 0.8)],
-		[_cone(0.25, 0.9), Vector3(0.6, 5.0, 0), Color(0.9, 0.88, 0.8)],
-	])
+	body.mesh = _sprite_mesh("res://assets/troll.png", 5.6)
+	body.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	boss_node.add_child(body)
+	var boss_shadow := MeshInstance3D.new()
+	boss_shadow.mesh = _blob_mesh(5.0)
+	boss_shadow.position.y = 0.04
+	boss_shadow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	boss_node.add_child(boss_shadow)
 	boss_label = _label3d(110)
-	boss_label.position.y = 6.2
+	boss_label.position.y = 6.4
 	boss_node.add_child(boss_label)
 	boss_node.visible = false
 	add_child(boss_node)
@@ -472,8 +473,9 @@ func _spawn(ev: Dictionary) -> void:
 				e_count += 1
 		"boss":
 			boss_active = true
-			boss_hp = ev.hp
-			boss_max = ev.hp
+			# Never let an oversized army delete the boss instantly.
+			boss_hp = maxf(ev.hp, soldiers * 30.0)
+			boss_max = boss_hp
 			boss_x = 0.0
 			boss_z = z
 			boss_node.visible = true
