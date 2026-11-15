@@ -10,7 +10,7 @@ Alle sprites: transparante PNG, zelfde stijl en camerahoek als `archer.png`
 - [x] 4. Pluspoort: blauw banier, zonder getal – ontvangen, nog niet verwerkt
 - [ ] 5. Minpoort: rood banier, zonder getal
 - [ ] 6. Vermenigvuldigpoort: gouden banier, zonder getal
-- [ ] 7. Poortpaal (hout met gouden knop)
+- [x] 7. Poortpaal (hout met gouden knop) – ontvangen, nog niet verwerkt
 - [ ] 8. Pijl
 - [ ] 9. Brugdek: stenen tegels, naadloos herhaalbaar, recht van boven
 - [ ] 10. Brugleuning: houten segment, herhaalbaar
