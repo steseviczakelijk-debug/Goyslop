@@ -47,6 +47,9 @@ var coins_fx: Particles
 var floaters: Array = []      # pooled Label3D for "+12" / "-3"
 var slot_recoil := PackedFloat32Array()
 var slot_pop := PackedFloat32Array()
+var slot_x := PackedFloat32Array()   # each archer trails the squad a little
+var count_before := 0
+var count_pulse := 0.0
 var shown_before := 0
 var lost_pending := 0
 var lost_timer := 0.0
@@ -304,6 +307,7 @@ func _build_world() -> void:
 	soldier_mm = _multimesh(_unit_mesh("res://assets/archer.png", 1.35), B.MAX_SHOWN, true)
 	slot_recoil.resize(B.MAX_SHOWN)
 	slot_pop.resize(B.MAX_SHOWN)
+	slot_x.resize(B.MAX_SHOWN)
 	bullet_mm = _multimesh(_sprite_mesh("res://assets/arrow.png", 1.7, 0.3), B.MAX_BULLETS)
 
 	var gate_h := GATE_WIDTH * 295.0 / 512.0
@@ -396,9 +400,11 @@ func render(sim: Sim, time: float) -> void:
 	enemy_mm.visible_instance_count = sim.e_count
 	enemy_shadow_mm.visible_instance_count = sim.e_count
 	for i in sim.e_count:
-		var phase := time * 10.0 + i * 0.7
+		var seed := sim.e_seed[i]
+		var phase := time * (9.0 + seed * 3.0) + seed * 40.0
 		var squash := 1.0 + sin(phase * 2.0) * 0.05
-		t.basis = Basis.from_scale(Vector3(2.0 - squash, squash, 1.0))
+		var big := 0.88 + seed * 0.28
+		t.basis = Basis.from_scale(Vector3((2.0 - squash) * big, squash * big, 1.0))
 		t.origin = Vector3(sim.e_x[i], absf(sin(phase)) * 0.12, sim.e_z[i])
 		enemy_mm.set_instance_transform(i, t)
 		enemy_mm.set_instance_custom_data(i, Color(sim.e_flash[i], sin(phase) * 0.1, 0, 0))
@@ -416,6 +422,7 @@ func render(sim: Sim, time: float) -> void:
 	shadow_mm.visible_instance_count = shown
 	for i in range(shown_before, shown):
 		slot_pop[i] = 1.0
+		slot_x[i] = sim.squad_x + sim.formation[i].x
 	shown_before = shown
 	for i in shown:
 		var f := sim.formation[i]
@@ -426,7 +433,10 @@ func render(sim: Sim, time: float) -> void:
 		var grow := 1.0 - pop + sin(pop * PI) * 0.45
 		var hop := absf(sin(time * 7.0 + i * 1.3)) * (0.5 if cheering else 0.05)
 		t.basis = Basis.from_scale(Vector3(grow * (1.0 + recoil * 0.12), grow * (1.0 - recoil * 0.14), 1.0))
-		t.origin = Vector3(clampf(sim.squad_x + f.x, -B.ROAD_HALF + 0.3, B.ROAD_HALF - 0.3), hop, f.y + recoil * 0.12)
+		# Archers further from the centre follow later, so the crowd flows.
+		var follow := 1.0 - exp(-dt * (24.0 - 14.0 * i / B.MAX_SHOWN))
+		slot_x[i] = lerpf(slot_x[i], sim.squad_x + f.x, follow)
+		t.origin = Vector3(clampf(slot_x[i], -B.ROAD_HALF + 0.3, B.ROAD_HALF - 0.3), hop, f.y + recoil * 0.12)
 		soldier_mm.set_instance_transform(i, t)
 		soldier_mm.set_instance_custom_data(i, Color(pop * 0.8, sin(time * 7.0 + i * 1.3) * 0.04, 0, 0))
 		t.basis = Basis.IDENTITY
@@ -436,6 +446,13 @@ func render(sim: Sim, time: float) -> void:
 	squad_label.text = count_text
 	squad_label.pixel_size = 0.009 * minf(1.0, 2.6 / count_text.length())
 	squad_label.position = Vector3(sim.squad_x, 2.3, -sim.squad_r - 0.3)
+	if sim.soldiers != count_before:
+		count_before = sim.soldiers
+		count_pulse = 1.0
+	count_pulse = maxf(0.0, count_pulse - dt * 5.0)
+	var bump := 1.0 + count_pulse * 0.3
+	squad_label.scale = Vector3(bump, bump, bump)
+	squad_badge.scale = squad_label.scale
 	squad_badge.position = squad_label.position
 
 	# Scrolling ground: slide the textures instead of moving geometry.
@@ -514,6 +531,9 @@ func apply_fx(sim: Sim) -> void:
 					add_shake(0.15)
 			"grow":
 				gate_pulse[e[1]] = 1.0
+			"boss_hit":
+				if puffs.count < 300:
+					puffs.emit(Vector3(sim.boss_x + randf_range(-1.0, 1.0), randf_range(1.0, 3.5), sim.boss_z + 0.5), Vector3(randf_range(-2.0, 2.0), randf_range(0.0, 3.0), 2.0), 0.25, 0.6, Color(1.0, 0.9, 0.4))
 			"boss_dead":
 				add_shake(0.6)
 				for k in 60:

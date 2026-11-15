@@ -29,7 +29,12 @@ uitleg ziet eruit als een levend spel.
 9. [x] Geluid: dertien effecten en één muziekstuk, allemaal gesynthetiseerd als
    tijdelijke vulling (tools/make_sounds.py). [ ] Vervangen door opgenomen geluid;
    [ ] apart muziekstuk voor de baas.
-10. [x] Winst: confetti, juichend leger. [ ] Munten die optellen.
+10. [x] Winst: confetti, juichend leger, vertraging bij de laatste klap.
+    [ ] Munten die optellen.
+11. [x] Menu met pauze, volume voor muziek en geluid, trillen aan/uit, level
+    opnieuw; de terugknop van Android en het verlaten van de app openen het menu.
+12. [x] Levendiger: boogschutters volgen met vertraging, orks verschillen in
+    grootte en tempo en lopen niet meer in een strak raster.
 
 ## Fase 2 – Kernspel en balans (3–4 weken)
 Eindresultaat: tien levels die verschillend aanvoelen; een gemiddelde testbot wint

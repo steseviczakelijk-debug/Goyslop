@@ -14,10 +14,14 @@ var clock := 0.0
 
 
 func _ready() -> void:
+	for bus in ["Music", "SFX"]:
+		AudioServer.add_bus()
+		AudioServer.set_bus_name(AudioServer.bus_count - 1, bus)
 	for n in NAMES:
 		streams[n] = load("res://assets/audio/%s.wav" % n)
 	for i in VOICES:
 		var p := AudioStreamPlayer.new()
+		p.bus = "SFX"
 		add_child(p)
 		players.append(p)
 	var track: AudioStreamWAV = load("res://assets/audio/music.wav")
@@ -26,6 +30,7 @@ func _ready() -> void:
 	track.loop_end = int(track.get_length() * track.mix_rate)
 	music = AudioStreamPlayer.new()
 	music.stream = track
+	music.bus = "Music"
 	music.volume_db = -16.0
 	add_child(music)
 
@@ -56,3 +61,15 @@ func start_music() -> void:
 ## Lowers the music so a win or lose jingle can be heard over it.
 func duck_music() -> void:
 	music.volume_db = -30.0
+
+
+## Volumes run from 0 (silent) to 1 (full).
+func set_volumes(music_volume: float, sfx_volume: float) -> void:
+	_set_bus("Music", music_volume)
+	_set_bus("SFX", sfx_volume)
+
+
+func _set_bus(bus: String, volume: float) -> void:
+	var idx := AudioServer.get_bus_index(bus)
+	AudioServer.set_bus_mute(idx, volume <= 0.01)
+	AudioServer.set_bus_volume_db(idx, linear_to_db(maxf(volume, 0.01)))

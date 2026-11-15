@@ -34,7 +34,7 @@ var events: Array = []
 var next_event := 0
 var outcome := 0  # 0 while playing, 1 on win, -1 on loss
 ## What happened this tick, for the view and audio to react to. Each entry is
-## [kind, ...]: ["shot", slot], ["kill", x, z], ["lost", x, z, count],
+## [kind, ...]: ["volley"], ["shot", slot], ["hit"], ["kill", x, z], ["lost", x, z, count],
 ## ["gate", x, gained, good], ["grow", gate_id], ["boss_hit"], ["boss_dead", x, z].
 var fx: Array = []
 var coins_earned := 0
@@ -43,6 +43,7 @@ var e_x := PackedFloat32Array()
 var e_z := PackedFloat32Array()
 var e_hp := PackedFloat32Array()
 var e_flash := PackedFloat32Array()
+var e_seed := PackedFloat32Array()  # 0..1 per orc: size and step timing
 var e_count := 0
 var buckets: Array = []
 
@@ -72,6 +73,7 @@ func _init() -> void:
 	e_z.resize(B.MAX_ENEMIES)
 	e_hp.resize(B.MAX_ENEMIES)
 	e_flash.resize(B.MAX_ENEMIES)
+	e_seed.resize(B.MAX_ENEMIES)
 	b_x.resize(B.MAX_BULLETS)
 	b_z.resize(B.MAX_BULLETS)
 	b_dmg.resize(B.MAX_BULLETS)
@@ -130,8 +132,10 @@ func _spawn(ev: Dictionary) -> void:
 			for i in ev.count:
 				if e_count >= B.MAX_ENEMIES:
 					break
-				e_x[e_count] = ev.x0 + (i % per_row) * B.ENEMY_SPACING
-				e_z[e_count] = z - (i / per_row) * B.ENEMY_SPACING
+				# A little disorder makes it a horde instead of a parade.
+				e_x[e_count] = ev.x0 + (i % per_row) * B.ENEMY_SPACING + rng.randf_range(-0.14, 0.14)
+				e_z[e_count] = z - (i / per_row) * B.ENEMY_SPACING + rng.randf_range(-0.18, 0.18)
+				e_seed[e_count] = rng.randf()
 				e_hp[e_count] = ev.hp
 				e_flash[e_count] = 0.0
 				e_count += 1
@@ -184,6 +188,7 @@ func _fire() -> void:
 	var shown := mini(soldiers, B.MAX_SHOWN)
 	var shooters := mini(soldiers, B.MAX_SHOOTERS)
 	var dmg := float(soldiers) / shooters
+	fx.append(["volley"])
 	for i in shooters:
 		if b_count >= B.MAX_BULLETS:
 			return
@@ -206,6 +211,7 @@ func _update_bullets(dt: float) -> void:
 			buckets[k].append(i)
 
 	var step := B.BULLET_SPEED * dt
+	var any_hit := false
 	var i := 0
 	while i < b_count:
 		var x := b_x[i]
@@ -236,6 +242,7 @@ func _update_bullets(dt: float) -> void:
 						var d := minf(dmg, e_hp[j])
 						e_hp[j] -= d
 						e_flash[j] = 1.0
+						any_hit = true
 						if e_hp[j] <= 0.0:
 							fx.append(["kill", e_x[j], e_z[j]])
 						dmg -= d
@@ -255,6 +262,8 @@ func _update_bullets(dt: float) -> void:
 			b_z[i] = z_new
 			b_dmg[i] = dmg
 			i += 1
+	if any_hit:
+		fx.append(["hit"])
 
 
 func _update_enemies(dt: float) -> void:
@@ -286,6 +295,7 @@ func _update_enemies(dt: float) -> void:
 			e_z[i] = e_z[e_count]
 			e_hp[i] = e_hp[e_count]
 			e_flash[i] = e_flash[e_count]
+			e_seed[i] = e_seed[e_count]
 		else:
 			i += 1
 

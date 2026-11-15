@@ -3,6 +3,9 @@ extends CanvasLayer
 ## start/win/lose overlay and a performance readout for test builds.
 
 signal stress_requested
+signal menu_toggled(open: bool)
+signal settings_changed(music: float, sfx: float, vibrate: bool)
+signal restart_requested
 
 const INK := Color(0.05, 0.1, 0.3)
 
@@ -15,6 +18,11 @@ var msg_label: Label
 var sub_label: Label
 var button_label: Label
 var perf_button: Button
+var menu: Control
+var music_slider: HSlider
+var sfx_slider: HSlider
+var vibrate_label: Label
+var vibrate_on := true
 var perf_timer := 0.0
 
 
@@ -105,6 +113,21 @@ func _ready() -> void:
 	sub_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	sub_label.offset_top = 110
 
+	var menu_button := TextureButton.new()
+	menu_button.texture_normal = load("res://assets/ui_badge.png")
+	menu_button.ignore_texture_size = true
+	menu_button.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	menu_button.pressed.connect(open_menu)
+	root.add_child(menu_button)
+	menu_button.anchor_left = 1.0
+	menu_button.anchor_right = 1.0
+	menu_button.offset_left = -104
+	menu_button.offset_right = -20
+	menu_button.offset_top = 164
+	menu_button.offset_bottom = 248
+	var bars := _hud_label(menu_button, 34)
+	bars.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	bars.text = "II"
 	if OS.is_debug_build():
 		perf_button = Button.new()
 		perf_button.flat = true
@@ -118,8 +141,9 @@ func _ready() -> void:
 		perf_button.anchor_right = 1.0
 		perf_button.offset_left = -260
 		perf_button.offset_right = -16
-		perf_button.offset_top = 236
-		perf_button.offset_bottom = 330
+		perf_button.offset_top = 262
+		perf_button.offset_bottom = 356
+	_build_menu(root)
 
 
 func show_overlay(title: String, button: String, sub: String) -> void:
@@ -153,3 +177,122 @@ func update_perf(dt: float, enemies: int, arrows: int) -> void:
 	if perf_timer <= 0.0:
 		perf_timer = 0.5
 		perf_button.text = "%d fps\n%d orcs  %d arrows\ntap: stress test" % [Engine.get_frames_per_second(), enemies, arrows]
+
+
+func _build_menu(root: Control) -> void:
+	menu = ColorRect.new()
+	menu.color = Color(0.02, 0.05, 0.15, 0.6)
+	menu.set_anchors_preset(Control.PRESET_FULL_RECT)
+	menu.visible = false
+	root.add_child(menu)
+
+	var panel := PanelContainer.new()
+	var box := StyleBoxFlat.new()
+	box.bg_color = Color(0.07, 0.13, 0.35)
+	box.border_color = Color(1.0, 0.75, 0.1)
+	box.set_border_width_all(6)
+	box.set_corner_radius_all(28)
+	box.set_content_margin_all(36)
+	panel.add_theme_stylebox_override("panel", box)
+	menu.add_child(panel)
+	panel.anchor_left = 0.5
+	panel.anchor_right = 0.5
+	panel.anchor_top = 0.5
+	panel.anchor_bottom = 0.5
+	panel.offset_left = -290
+	panel.offset_right = 290
+	panel.offset_top = -380
+	panel.offset_bottom = 380
+
+	var rows := VBoxContainer.new()
+	rows.add_theme_constant_override("separation", 22)
+	panel.add_child(rows)
+	var title := _hud_label(rows, 64)
+	title.text = "MENU"
+
+	music_slider = _menu_slider(rows, "Music")
+	sfx_slider = _menu_slider(rows, "Sound")
+
+	vibrate_label = _menu_button(rows, "", func():
+		vibrate_on = not vibrate_on
+		_show_vibrate()
+		_emit_settings())
+
+	var spacer := Control.new()
+	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	rows.add_child(spacer)
+	_menu_button(rows, "RESUME", close_menu)
+	_menu_button(rows, "RESTART LEVEL", func():
+		close_menu()
+		restart_requested.emit())
+
+
+func _menu_slider(rows: Control, text: String) -> HSlider:
+	var label := _hud_label(rows, 38)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	label.text = text
+	var slider := HSlider.new()
+	slider.min_value = 0.0
+	slider.max_value = 1.0
+	slider.step = 0.05
+	slider.custom_minimum_size = Vector2(0, 70)
+	var track := StyleBoxFlat.new()
+	track.bg_color = Color(0.02, 0.05, 0.18)
+	track.set_corner_radius_all(9)
+	track.content_margin_top = 9
+	track.content_margin_bottom = 9
+	slider.add_theme_stylebox_override("slider", track)
+	var filled := track.duplicate()
+	filled.bg_color = Color(0.25, 0.8, 1.0)
+	slider.add_theme_stylebox_override("grabber_area", filled)
+	slider.add_theme_stylebox_override("grabber_area_highlight", filled)
+	var knob_image: Image = load("res://assets/coin.png").get_image()
+	knob_image.resize(60, 62, Image.INTERPOLATE_LANCZOS)
+	var knob := ImageTexture.create_from_image(knob_image)
+	slider.add_theme_icon_override("grabber", knob)
+	slider.add_theme_icon_override("grabber_highlight", knob)
+	slider.value_changed.connect(func(_v): _emit_settings())
+	rows.add_child(slider)
+	return slider
+
+
+func _menu_button(rows: Control, text: String, action: Callable) -> Label:
+	var b := TextureButton.new()
+	b.texture_normal = load("res://assets/ui_button.png")
+	b.ignore_texture_size = true
+	b.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	b.custom_minimum_size = Vector2(0, 104)
+	b.pressed.connect(action)
+	rows.add_child(b)
+	var l := _hud_label(b, 38)
+	l.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	l.text = text
+	return l
+
+
+func _show_vibrate() -> void:
+	vibrate_label.text = "VIBRATION: ON" if vibrate_on else "VIBRATION: OFF"
+
+
+func _emit_settings() -> void:
+	settings_changed.emit(music_slider.value, sfx_slider.value, vibrate_on)
+
+
+## Fills the menu with the saved settings without triggering a save.
+func load_settings(music: float, sfx: float, vibrate: bool) -> void:
+	music_slider.set_value_no_signal(music)
+	sfx_slider.set_value_no_signal(sfx)
+	vibrate_on = vibrate
+	_show_vibrate()
+
+
+func open_menu() -> void:
+	if not menu.visible:
+		menu.visible = true
+		menu_toggled.emit(true)
+
+
+func close_menu() -> void:
+	if menu.visible:
+		menu.visible = false
+		menu_toggled.emit(false)
