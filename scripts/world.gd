@@ -24,6 +24,7 @@ var post_mesh: QuadMesh
 var boss_node: Node3D
 var boss_label: Label3D
 var enemy_mm: MultiMesh
+var armored_mm: MultiMesh
 var bullet_mm: MultiMesh
 var trail_mm: MultiMesh
 var soldier_mm: MultiMesh
@@ -48,6 +49,7 @@ var cheering := false
 var puffs: Particles
 var fallen: Particles   # orcs knocked off their feet
 var fallen_archers: Particles
+var fallen_armored: Particles
 var sparks: Particles
 var confetti: Particles
 var coins_fx: Particles
@@ -340,6 +342,7 @@ func _build_world() -> void:
 	enemy_shadow_mm = _multimesh(_blob_mesh(0.8), B.MAX_ENEMIES)
 	shadow_mm = _multimesh(_blob_mesh(0.75), B.MAX_SHOWN)
 	enemy_mm = _multimesh(_unit_mesh("res://assets/orc.png", 1.25, 2), B.MAX_ENEMIES, true)
+	armored_mm = _multimesh(_unit_mesh("res://assets/armored_orc.png", 1.65, 4), B.MAX_ENEMIES, true)
 	soldier_mm = _multimesh(_unit_mesh("res://assets/archer.png", 1.45, 4), B.MAX_SHOWN, true)
 	slot_recoil.resize(B.MAX_SHOWN)
 	slot_pop.resize(B.MAX_SHOWN)
@@ -410,6 +413,9 @@ func _build_world() -> void:
 	fallen = _particles("res://assets/orc_fall.png", 120)
 	fallen.gravity = 16.0
 	fallen.shrinks = true
+	fallen_armored = _particles("res://assets/armored_orc_fall.png", 40)
+	fallen_armored.gravity = 16.0
+	fallen_armored.shrinks = true
 	fallen_archers = _particles("res://assets/archer_fall.png", 40)
 	fallen_archers.gravity = 16.0
 	fallen_archers.shrinks = true
@@ -469,22 +475,41 @@ func render(sim: Sim, time: float) -> void:
 	var dt := clampf(time - last_time, 0.0, 0.05)
 	last_time = time
 	var t := Transform3D.IDENTITY
-	enemy_mm.visible_instance_count = sim.e_count
 	enemy_shadow_mm.visible_instance_count = sim.e_count
+	var plain := 0
+	var armored := 0
 	for i in sim.e_count:
 		var seed := sim.e_seed[i]
 		var phase := time * (9.0 + seed * 3.0) + seed * 40.0
 		var squash := 1.0 + sin(phase * 2.0) * 0.05
-		var big := 0.88 + seed * 0.28
-		t.basis = Basis.from_scale(Vector3((2.0 - squash) * big, squash * big, 1.0))
-		t.origin = Vector3(sim.e_x[i], absf(sin(phase)) * 0.12, sim.e_z[i])
-		enemy_mm.set_instance_transform(i, t)
-		enemy_mm.set_instance_custom_data(i, Color(sim.e_flash[i], sin(phase) * 0.06, 1.0 if sin(phase) > 0.0 else 0.0, 0))
+		if sim.e_armored[i] == 1:
+			# Poses: 0 and 1 run, 2 axe raised, 3 axe coming down.
+			var pose := 1.0 if sin(phase) > 0.0 else 0.0
+			var hop := absf(sin(phase)) * 0.12
+			var lean := sin(phase) * 0.05
+			if sim.e_attack[i] > 0.0:
+				pose = 3.0 if sim.e_attack[i] < B.ARMORED_STRIKE else 2.0
+				hop = 0.0
+				lean = 0.0
+				squash = 1.0
+			t.basis = Basis.from_scale(Vector3(2.0 - squash, squash, 1.0))
+			t.origin = Vector3(sim.e_x[i], hop, sim.e_z[i])
+			armored_mm.set_instance_transform(armored, t)
+			armored_mm.set_instance_custom_data(armored, Color(sim.e_flash[i], lean, pose, 0))
+			armored += 1
+		else:
+			var big := 0.88 + seed * 0.28
+			t.basis = Basis.from_scale(Vector3((2.0 - squash) * big, squash * big, 1.0))
+			t.origin = Vector3(sim.e_x[i], absf(sin(phase)) * 0.12, sim.e_z[i])
+			enemy_mm.set_instance_transform(plain, t)
+			enemy_mm.set_instance_custom_data(plain, Color(sim.e_flash[i], sin(phase) * 0.06, 1.0 if sin(phase) > 0.0 else 0.0, 0))
+			plain += 1
 		t.basis = Basis.IDENTITY
 		t.origin.y = 0.03
 		enemy_shadow_mm.set_instance_transform(i, t)
+	enemy_mm.visible_instance_count = plain
+	armored_mm.visible_instance_count = armored
 
-	bullet_mm.visible_instance_count = sim.b_count
 	trail_mm.visible_instance_count = sim.b_count
 	for i in sim.b_count:
 		# Arrows rise and fall along a shallow arc over their full range.
@@ -615,7 +640,8 @@ func apply_fx(sim: Sim) -> void:
 				if kills <= 10:
 					var at := Vector3(e[1], 0.6, e[2])
 					# The orc is thrown backward, tumbling, and leaves a puff behind.
-					fallen.emit(at + Vector3(0, 0.2, 0), Vector3(randf_range(-2.0, 2.0), randf_range(4.5, 6.5), randf_range(-7.0, -4.0)), 0.5, 1.7, Color.WHITE, 0.0, randf_range(-7.0, 7.0))
+					var pool := fallen_armored if e[3] else fallen
+					pool.emit(at + Vector3(0, 0.2, 0), Vector3(randf_range(-2.0, 2.0), randf_range(4.5, 6.5), randf_range(-7.0, -4.0)), 0.5, 2.1 if e[3] else 1.7, Color.WHITE, 0.0, randf_range(-7.0, 7.0))
 					puffs.emit(at, Vector3(randf_range(-1.0, 1.0), randf_range(0.5, 1.5), 0.0), 0.4, 0.75, Color(0.8, 1.0, 0.65, 0.95), 0.0, randf_range(-2.0, 2.0))
 					if kills <= 4:
 						sparks.emit(at, Vector3.ZERO, 0.12, 0.8, Color.WHITE, 0.0, 6.0)
@@ -641,6 +667,9 @@ func apply_fx(sim: Sim) -> void:
 					add_shake(0.15)
 			"grow":
 				gate_pulse[e[1]] = 1.0
+			"chop":
+				sparks.emit(Vector3(e[1], 0.5, e[2] + 0.6), Vector3.ZERO, 0.15, 1.6, Color.WHITE, 0.0, 5.0)
+				add_shake(0.12)
 			"boss_hit":
 				sparks.emit(Vector3(sim.boss_x + randf_range(-1.0, 1.0), randf_range(1.0, 3.5), sim.boss_z + 0.5), Vector3.ZERO, 0.14, 1.1, Color.WHITE, 0.0, 6.0)
 			"smash":
@@ -697,6 +726,7 @@ func _float_text(text: String, at: Vector3, color: Color) -> void:
 func _update_effects(dt: float) -> void:
 	fallen.update(dt)
 	fallen_archers.update(dt)
+	fallen_armored.update(dt)
 	puffs.update(dt)
 	sparks.update(dt)
 	confetti.update(dt)

@@ -127,6 +127,15 @@ def main():
     sprite("34_orc_fall.png", "orc_fall.png", height=256)
     sprite("40c_archer_fall.png", "archer_fall.png", height=256)
 
+    # Armored orc. His strike pose was drawn a little smaller than the others.
+    strike = load("43d_armored_orc_attack.png")
+    grown = strike.resize((round(strike.width * 1.08), round(strike.height * 1.08)), Image.LANCZOS)
+    strike = Image.new("RGBA", strike.size, (0, 0, 0, 0))
+    strike.paste(grown, ((strike.width - grown.width) // 2, (strike.height - grown.height) // 2 - 30))
+    pose_sheet([load("43a_armored_orc.png"), load("43b_armored_orc_step.png"), load("43e_armored_orc_windup.png"),
+                strike], "armored_orc.png", 300)
+    sprite("43c_armored_orc_fall.png", "armored_orc_fall.png", height=256)
+
     # Gates: one shape, three colours
     gate = sprite("04_gate_blue.png", "gate_blue.png", width=512)
     recolor_blue(gate, 0.0).save(OUT / "gate_red.png")

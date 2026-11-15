@@ -34,9 +34,9 @@ var events: Array = []
 var next_event := 0
 var outcome := 0  # 0 while playing, 1 on win, -1 on loss
 ## What happened this tick, for the view and audio to react to. Each entry is
-## [kind, ...]: ["volley"], ["shot", slot], ["hit"], ["kill", x, z], ["lost", x, z, count],
+## [kind, ...]: ["volley"], ["shot", slot], ["hit"], ["kill", x, z, armored], ["lost", x, z, count],
 ## ["gate", x, gained, good], ["grow", gate_id], ["boss_hit"], ["boss_dead", x, z],
-## ["windup"], ["smash", x, z, hit].
+## ["windup"], ["smash", x, z, hit], ["chop", x, z].
 var fx: Array = []
 var coins_earned := 0
 
@@ -45,6 +45,9 @@ var e_z := PackedFloat32Array()
 var e_hp := PackedFloat32Array()
 var e_flash := PackedFloat32Array()
 var e_seed := PackedFloat32Array()  # 0..1 per orc: size and step timing
+var e_armored := PackedByteArray()
+var e_cost := PackedInt32Array()     # soldiers an armored orc takes with his blow
+var e_attack := PackedFloat32Array() # seconds until that blow lands; 0 = not striking
 var e_count := 0
 var buckets: Array = []
 
@@ -77,6 +80,9 @@ func _init() -> void:
 	e_hp.resize(B.MAX_ENEMIES)
 	e_flash.resize(B.MAX_ENEMIES)
 	e_seed.resize(B.MAX_ENEMIES)
+	e_armored.resize(B.MAX_ENEMIES)
+	e_cost.resize(B.MAX_ENEMIES)
+	e_attack.resize(B.MAX_ENEMIES)
 	b_x.resize(B.MAX_BULLETS)
 	b_z.resize(B.MAX_BULLETS)
 	b_dmg.resize(B.MAX_BULLETS)
@@ -136,6 +142,8 @@ func _spawn(ev: Dictionary) -> void:
 			next_pair += 1
 		"wave":
 			var per_row := int((ev.x1 - ev.x0) / B.ENEMY_SPACING) + 1
+			var armored: int = ev.get("armored", 0)
+			var stride := maxi(1, ev.count / maxi(armored, 1))
 			for i in ev.count:
 				if e_count >= B.MAX_ENEMIES:
 					break
@@ -143,7 +151,12 @@ func _spawn(ev: Dictionary) -> void:
 				e_x[e_count] = ev.x0 + (i % per_row) * B.ENEMY_SPACING + rng.randf_range(-0.14, 0.14)
 				e_z[e_count] = z - (i / per_row) * B.ENEMY_SPACING + rng.randf_range(-0.18, 0.18)
 				e_seed[e_count] = rng.randf()
-				e_hp[e_count] = ev.hp
+				# Armored orcs are spread evenly through the wave.
+				var tough: bool = armored > 0 and i % stride == stride / 2
+				e_armored[e_count] = 1 if tough else 0
+				e_hp[e_count] = ev.hp * (B.ARMORED_HP if tough else 1.0)
+				e_cost[e_count] = int(ceilf(ev.hp)) * B.ARMORED_COST
+				e_attack[e_count] = 0.0
 				e_flash[e_count] = 0.0
 				e_count += 1
 		"boss":
@@ -253,7 +266,7 @@ func _update_bullets(dt: float) -> void:
 						e_flash[j] = 1.0
 						any_hit = true
 						if e_hp[j] <= 0.0:
-							fx.append(["kill", e_x[j], e_z[j]])
+							fx.append(["kill", e_x[j], e_z[j], e_armored[j] == 1])
 						dmg -= d
 						if dmg <= 0.001:
 							break
@@ -282,7 +295,18 @@ func _update_enemies(dt: float) -> void:
 	while i < e_count:
 		var remove := e_hp[i] <= 0.0
 		if remove:
-			coins_earned += B.COINS_PER_KILL
+			coins_earned += B.ARMORED_COINS if e_armored[i] == 1 else B.COINS_PER_KILL
+		elif e_attack[i] > 0.0:
+			# An armored orc at the squad stands his ground, raises his axe and
+			# strikes. Shooting him down before the blow lands saves the soldiers.
+			e_flash[i] = maxf(0.0, e_flash[i] - dt * 9.0)
+			e_attack[i] -= dt
+			if e_attack[i] <= 0.0:
+				var blow := mini(soldiers, e_cost[i])
+				soldiers -= blow
+				fx.append(["lost", e_x[i], e_z[i], blow])
+				fx.append(["chop", e_x[i], e_z[i]])
+				remove = true
 		else:
 			var z := e_z[i] + dz
 			var x := e_x[i]
@@ -291,7 +315,9 @@ func _update_enemies(dt: float) -> void:
 				x = move_toward(x, squad_x, steer)
 				e_x[i] = x
 			e_z[i] = z
-			if z > -squad_r - B.ENEMY_R and absf(x - squad_x) < squad_r + B.ENEMY_R:
+			if z > -squad_r - B.ENEMY_R and absf(x - squad_x) < squad_r + B.ENEMY_R and e_armored[i] == 1:
+				e_attack[i] = B.ARMORED_ATTACK
+			elif z > -squad_r - B.ENEMY_R and absf(x - squad_x) < squad_r + B.ENEMY_R:
 				var cost := int(ceilf(e_hp[i]))
 				soldiers -= cost
 				fx.append(["lost", x, z, cost])
@@ -305,6 +331,9 @@ func _update_enemies(dt: float) -> void:
 			e_hp[i] = e_hp[e_count]
 			e_flash[i] = e_flash[e_count]
 			e_seed[i] = e_seed[e_count]
+			e_armored[i] = e_armored[e_count]
+			e_cost[i] = e_cost[e_count]
+			e_attack[i] = e_attack[e_count]
 		else:
 			i += 1
 

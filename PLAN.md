@@ -48,7 +48,9 @@ Eindresultaat: tien levels die verschillend aanvoelen; een gemiddelde testbot wi
 2. Poorten begrenzen: groei door schieten krijgt een maximum per poort.
 3. Testbots met drie vaardigheidsniveaus; elke wijziging wordt daartegen gemeten.
 4. Levelgenerator bouwen uit handgemaakte bouwstenen met een spanningsboog.
-5. Nieuwe vijanden: snelle renner, gepantserde ork, grote bruut.
+5. [x] Gepantserde ork: drie keer zo sterk, vanaf level 3, drie munten; aan het
+   leger haalt hij eerst uit en neemt dan drie soldaten mee, tenzij je hem voor de
+   klap neerschiet. [ ] Snelle renner, grote bruut.
 6. Obstakels en beloningen: ton met teller, stekelval, poorten voor vuursnelheid en
    schade.
 7. Twee extra bazen met een eigen aanvalspatroon.

@@ -40,6 +40,7 @@ var shot_clock := 0.0
 var shot_menu := false
 var tap_test := false
 var boss_test := false
+var idle_bot := false  # test runs: let the squad stand still
 var tap_step := 0
 var tap_sent := 0
 
@@ -52,6 +53,8 @@ func _ready() -> void:
 			tap_test = true
 		elif a == "--menu":
 			shot_menu = true
+		elif a == "--idle":
+			idle_bot = true
 		elif a == "--boss-test":
 			boss_test = true
 		elif a == "--stress":
@@ -177,7 +180,7 @@ func _process(dt: float) -> void:
 		return
 	time += dt
 	if state == State.PLAY:
-		if autoplay:
+		if autoplay and not idle_bot:
 			Bot.steer(sim, dt)
 		sim.tick(dt)
 		world.apply_fx(sim)
@@ -226,6 +229,8 @@ func _play_fx() -> void:
 				_buzz(12, 0.07)
 			"boss_dead":
 				audio.play("boss_dead", 2.0)
+			"chop":
+				audio.play("hit", 0.0, 0.05, 0.1)
 			"windup":
 				audio.play("lost", -6.0, 0.0, 0.0)
 			"smash":

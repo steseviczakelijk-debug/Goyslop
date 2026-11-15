@@ -40,7 +40,10 @@ static func generate(lv: int) -> Dictionary:
 				x1 = -0.3
 			else:
 				x0 = 0.3
-		events.append({"s": s, "type": "wave", "count": count, "hp": hp, "x0": x0, "x1": x1})
+		var share := 0.0
+		if lv >= B.ARMORED_FROM_LEVEL:
+			share = minf(B.ARMORED_SHARE + (lv - B.ARMORED_FROM_LEVEL) * B.ARMORED_SHARE_GROWTH, B.ARMORED_SHARE_MAX)
+		events.append({"s": s, "type": "wave", "count": count, "hp": hp, "x0": x0, "x1": x1, "armored": int(round(count * share))})
 		var per_row := int((x1 - x0) / B.ENEMY_SPACING) + 1
 		s += B.SEGMENT_GAP + ceilf(float(count) / per_row) * B.ENEMY_SPACING
 		est *= 0.85

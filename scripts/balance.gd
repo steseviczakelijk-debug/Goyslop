@@ -28,6 +28,17 @@ const ENEMY_STEER := 1.3
 const ENEMY_STEER_RANGE := 16.0
 const ENEMY_SPACING := 0.72
 
+# Armored orcs: tougher, costlier and they strike before they take their toll
+const ARMORED_FROM_LEVEL := 3
+const ARMORED_HP := 3.0          # times a normal orc of the same wave
+const ARMORED_COST := 3          # soldiers lost per normal orc's worth
+const ARMORED_COINS := 3
+const ARMORED_SHARE := 0.06      # part of a wave at ARMORED_FROM_LEVEL
+const ARMORED_SHARE_GROWTH := 0.02
+const ARMORED_SHARE_MAX := 0.25
+const ARMORED_ATTACK := 0.5      # seconds from raising the axe to the blow
+const ARMORED_STRIKE := 0.18     # the last part of that, axe coming down
+
 # Gates
 const GATE_HITS_PER_POINT := 7
 

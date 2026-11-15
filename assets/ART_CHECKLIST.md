@@ -56,6 +56,7 @@ spelklare bestanden in `assets/` van.
 - [x] 41. Trol geraakt (in `troll.png`)
 - [x] 42. Stenen brugmuur, zijkant en bovenkant – `wall_side.png`, `wall_top.png` (vervangt de palen van nummer 31)
 
+- [x] 43. Gepantserde ork: lopen, stap, uithalen, slaan (in `armored_orc.png`) en vallen – `armored_orc_fall.png`
+- [ ] 44. Ton (binnen, nog niet ingebouwd) en kapotte ton
+
 ## Ronde 5 – later
-- [ ] 32. Sterke vijand (gepantserde ork)
-- [ ] 33. Ton of kist met ruimte voor een teller
