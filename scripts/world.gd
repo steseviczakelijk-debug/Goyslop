@@ -510,6 +510,7 @@ func render(sim: Sim, time: float) -> void:
 	enemy_mm.visible_instance_count = plain
 	armored_mm.visible_instance_count = armored
 
+	bullet_mm.visible_instance_count = sim.b_count
 	trail_mm.visible_instance_count = sim.b_count
 	for i in sim.b_count:
 		# Arrows rise and fall along a shallow arc over their full range.
