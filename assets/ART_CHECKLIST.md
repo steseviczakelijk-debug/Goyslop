@@ -26,7 +26,7 @@ Alle sprites: transparante PNG, zelfde stijl en camerahoek als `archer.png`
 - [x] 18. Lucht met wolken – ontvangen, nog niet verwerkt
 
 ## Ronde 3 – interface
-- [ ] 19. Levelbanner: leeg perkament met twee schildjes
+- [x] 19. Levelbanner – ontvangen, nog niet verwerkt
 - [ ] 20. Voortgangsbalk: lege lijst plus kasteel-icoon
 - [ ] 21. Tellerschildje (voor het getal boven het leger)
 - [ ] 22. Knop: leeg, blauw met gouden rand
