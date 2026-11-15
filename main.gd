@@ -1,6 +1,7 @@
 extends Node3D
-## Lane shooter prototype: drag to move the squad, shooting is automatic.
-## Gates change squad size, hordes eat soldiers, a boss ends each level.
+## Medieval lane shooter: drag to move your knights along the castle bridge,
+## archery is automatic. Gates change squad size, orc hordes eat soldiers and
+## a troll ends each level.
 
 enum State { MENU, PLAY, WIN, LOSE }
 
@@ -19,6 +20,7 @@ const ENEMY_SPEED := 2.0
 const ENEMY_SPACING := 0.72
 const GATE_HITS_PER_POINT := 7
 const BOSS_R := 1.5
+const SCENERY_ROWS := 44
 const BUCKETS := 22
 const BUCKET_W := 0.5
 const SAVE_PATH := "user://save.cfg"
@@ -62,7 +64,8 @@ var boss_label: Label3D
 var enemy_mm: MultiMesh
 var bullet_mm: MultiMesh
 var soldier_mm: MultiMesh
-var dash_mm: MultiMesh
+var seam_mm: MultiMesh
+var merlon_mm: MultiMesh
 var squad_label: Label3D
 var formation := PackedVector2Array()
 
@@ -179,6 +182,39 @@ func _capsule(radius: float, height: float, c: Color) -> CapsuleMesh:
 	return mesh
 
 
+func _merge(parts: Array) -> ArrayMesh:
+	# parts: [PrimitiveMesh, offset, color] -> one mesh with a surface per part
+	var am := ArrayMesh.new()
+	for p in parts:
+		var arrays: Array = p[0].get_mesh_arrays()
+		var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+		for i in verts.size():
+			verts[i] += p[1]
+		arrays[Mesh.ARRAY_VERTEX] = verts
+		am.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		am.surface_set_material(am.get_surface_count() - 1, _mat(p[2]))
+	return am
+
+
+func _sphere(radius: float, hemisphere := false) -> SphereMesh:
+	var m := SphereMesh.new()
+	m.radius = radius
+	m.height = radius if hemisphere else radius * 2.0
+	m.is_hemisphere = hemisphere
+	m.radial_segments = 10
+	m.rings = 5
+	return m
+
+
+func _cone(radius: float, height: float) -> CylinderMesh:
+	var m := CylinderMesh.new()
+	m.top_radius = 0.0
+	m.bottom_radius = radius
+	m.height = height
+	m.radial_segments = 8
+	return m
+
+
 func _build_world() -> void:
 	var env := Environment.new()
 	env.background_mode = Environment.BG_COLOR
@@ -204,22 +240,38 @@ func _build_world() -> void:
 	add_child(cam)
 	cam.look_at_from_position(Vector3(0, 15, 9), Vector3(0, 0, -6))
 
-	_box(Vector3(ROAD_HALF * 2, 1, 220), Vector3(0, -0.5, -80), Color(0.6, 0.58, 0.54))
+	var stone := Color(0.62, 0.6, 0.55)
+	var wall := Color(0.46, 0.45, 0.44)
+	_box(Vector3(ROAD_HALF * 2, 1, 220), Vector3(0, -0.5, -80), stone)
 	for side in [-1.0, 1.0]:
-		_box(Vector3(0.5, 0.9, 220), Vector3(side * (ROAD_HALF + 0.25), 0.2, -80), Color(0.5, 0.5, 0.52))
-	_box(Vector3(400, 1, 400), Vector3(0, -3, -100), Color(0.16, 0.42, 0.75))
+		_box(Vector3(0.6, 1.0, 220), Vector3(side * (ROAD_HALF + 0.3), 0.1, -80), wall)
+	_box(Vector3(400, 1, 400), Vector3(0, -4, -100), Color(0.12, 0.36, 0.62))
 
-	var dash := BoxMesh.new()
-	dash.size = Vector3(0.18, 0.02, 2.0)
-	dash.material = _mat(Color(0.95, 0.95, 0.9))
-	dash_mm = _multimesh(dash, 24)
-	dash_mm.visible_instance_count = 24
+	var seam := BoxMesh.new()
+	seam.size = Vector3(ROAD_HALF * 2, 0.02, 0.07)
+	seam.material = _mat(Color(0.45, 0.43, 0.4))
+	seam_mm = _multimesh(seam, SCENERY_ROWS)
+	seam_mm.visible_instance_count = SCENERY_ROWS
+	var merlon := BoxMesh.new()
+	merlon.size = Vector3(0.6, 0.5, 1.0)
+	merlon.material = _mat(wall)
+	merlon_mm = _multimesh(merlon, SCENERY_ROWS * 2)
+	merlon_mm.visible_instance_count = SCENERY_ROWS * 2
 
-	enemy_mm = _multimesh(_capsule(0.3, 1.0, Color(0.9, 0.15, 0.15)), MAX_ENEMIES)
-	soldier_mm = _multimesh(_capsule(0.24, 0.9, Color(0.15, 0.45, 1.0)), MAX_SHOWN)
+	var skin := Color(0.95, 0.76, 0.6)
+	var orc := Color(0.35, 0.6, 0.2)
+	enemy_mm = _multimesh(_merge([
+		[_capsule(0.27, 0.75, Color.WHITE), Vector3(0, 0.38, 0), Color(0.4, 0.25, 0.15)],
+		[_sphere(0.23), Vector3(0, 0.9, 0), orc],
+	]), MAX_ENEMIES)
+	soldier_mm = _multimesh(_merge([
+		[_capsule(0.21, 0.7, Color.WHITE), Vector3(0, 0.35, 0), Color(0.15, 0.4, 0.95)],
+		[_sphere(0.16), Vector3(0, 0.8, 0), skin],
+		[_sphere(0.2, true), Vector3(0, 0.82, 0), Color(0.75, 0.77, 0.8)],
+	]), MAX_SHOWN)
 	var bullet := BoxMesh.new()
-	bullet.size = Vector3(0.12, 0.12, 0.9)
-	bullet.material = _mat(Color(1.0, 0.85, 0.2), true)
+	bullet.size = Vector3(0.07, 0.07, 1.0)
+	bullet.material = _mat(Color(1.0, 0.9, 0.55), true)
 	bullet_mm = _multimesh(bullet, MAX_BULLETS)
 
 	squad_label = _label3d(72)
@@ -227,11 +279,15 @@ func _build_world() -> void:
 
 	boss_node = Node3D.new()
 	var body := MeshInstance3D.new()
-	body.mesh = _capsule(1.3, 4.2, Color(0.45, 0.05, 0.25))
-	body.position.y = 2.1
+	body.mesh = _merge([
+		[_capsule(1.3, 3.6, Color.WHITE), Vector3(0, 1.8, 0), Color(0.3, 0.22, 0.16)],
+		[_sphere(0.95), Vector3(0, 4.0, 0), Color(0.3, 0.5, 0.18)],
+		[_cone(0.25, 0.9), Vector3(-0.6, 5.0, 0), Color(0.9, 0.88, 0.8)],
+		[_cone(0.25, 0.9), Vector3(0.6, 5.0, 0), Color(0.9, 0.88, 0.8)],
+	])
 	boss_node.add_child(body)
 	boss_label = _label3d(110)
-	boss_label.position.y = 5.2
+	boss_label.position.y = 6.2
 	boss_node.add_child(boss_label)
 	boss_node.visible = false
 	add_child(boss_node)
@@ -284,10 +340,11 @@ func _build_hud() -> void:
 	msg_label = _hud_label(root, 96)
 	msg_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	msg_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	msg_label.offset_bottom = -360
 	sub_label = _hud_label(root, 40)
 	sub_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	sub_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	sub_label.offset_top = 220
+	sub_label.offset_bottom = -140
 
 
 # ---------------------------------------------------------------- level
@@ -353,7 +410,7 @@ func _reset_level() -> void:
 	state = State.MENU
 	level_label.text = "LEVEL %d" % level
 	msg_label.text = "TAP TO START"
-	sub_label.text = "Drag to pick your lane"
+	sub_label.text = "Drag to move your knights"
 
 
 func _start() -> void:
@@ -625,7 +682,7 @@ func _render() -> void:
 	var t := Transform3D.IDENTITY
 	enemy_mm.visible_instance_count = e_count
 	for i in e_count:
-		t.origin = Vector3(e_x[i], 0.5 + absf(sin(time * 9.0 + i)) * 0.12, e_z[i])
+		t.origin = Vector3(e_x[i], absf(sin(time * 9.0 + i)) * 0.12, e_z[i])
 		enemy_mm.set_instance_transform(i, t)
 
 	bullet_mm.visible_instance_count = b_count
@@ -637,15 +694,20 @@ func _render() -> void:
 	soldier_mm.visible_instance_count = shown
 	for i in shown:
 		var f := formation[i]
-		t.origin = Vector3(clampf(squad_x + f.x, -ROAD_HALF + 0.25, ROAD_HALF - 0.25), 0.45, f.y)
+		t.origin = Vector3(clampf(squad_x + f.x, -ROAD_HALF + 0.25, ROAD_HALF - 0.25), 0.0, f.y)
 		soldier_mm.set_instance_transform(i, t)
 	squad_label.text = str(soldiers)
 	squad_label.position = Vector3(squad_x, 2.2, -squad_r * 0.5)
 
-	var off := fmod(distance, 6.0)
-	for i in 24:
-		t.origin = Vector3(0, 0.01, 12.0 - i * 6.0 + off)
-		dash_mm.set_instance_transform(i, t)
+	var off := fmod(distance, 2.5)
+	for i in SCENERY_ROWS:
+		var z := 12.0 - i * 2.5 + off
+		t.origin = Vector3(0, 0.01, z)
+		seam_mm.set_instance_transform(i, t)
+		t.origin = Vector3(-ROAD_HALF - 0.3, 0.85, z)
+		merlon_mm.set_instance_transform(i * 2, t)
+		t.origin.x = ROAD_HALF + 0.3
+		merlon_mm.set_instance_transform(i * 2 + 1, t)
 
 	if boss_active:
 		boss_node.position = Vector3(boss_x, 0, boss_z)

@@ -1,10 +1,10 @@
 # Goyslop
 
-Lane shooter voor Android, gemaakt met Godot 4.5.
+Middeleeuwse lane shooter voor Android, gemaakt met Godot 4.5.
 
 Sleep om je baan te kiezen; schieten gaat automatisch. Poorten veranderen de
-grootte van je leger (blauwe poorten groeien als je erop schiet), hordes kosten
-soldaten en aan het eind van elk level wacht een baas.
+grootte van je leger (blauwe poorten groeien als je erop schiet), orkhordes kosten
+soldaten en aan het eind van elk level wacht een trol.
 
 ## Spelen en bouwen
 
