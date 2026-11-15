@@ -13,7 +13,7 @@ Alle sprites: transparante PNG, zelfde stijl en camerahoek als `archer.png`
 - [x] 7. Poortpaal (hout met gouden knop) – ontvangen, nog niet verwerkt
 - [x] 8. Pijl – ontvangen, nog niet verwerkt
 - [x] 9. Brugdek: stenen tegels – ontvangen, nog niet verwerkt (naden bijwerken)
-- [ ] 10. Brugleuning: houten segment, herhaalbaar
+- [x] 10. Brugleuning: houten segment – ontvangen, nog niet verwerkt (rode randpixels wegpoetsen)
 
 ## Ronde 2 – omgeving
 - [ ] 11. Gras: naadloos herhaalbaar, recht van boven
