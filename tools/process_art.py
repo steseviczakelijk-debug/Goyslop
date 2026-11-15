@@ -39,6 +39,34 @@ def sprite(src, dst, **size):
     return im
 
 
+def key_black(im):
+    """Make a solid black backdrop transparent, softening the edge it leaves."""
+    from PIL import ImageFilter
+    a = np.array(im.convert("RGB")).astype(np.float32)
+    mx = a.max(axis=2)
+    backdrop = Image.fromarray(((mx < 26) * 255).astype(np.uint8))
+    near = np.array(backdrop.filter(ImageFilter.MaxFilter(7))) > 0
+    alpha = np.where(near, np.clip((mx - 14.0) / 40.0, 0.0, 1.0), 1.0)
+    rgb = np.where(near[..., None], np.clip(a / np.maximum(alpha, 0.25)[..., None], 0, 255), a)
+    out = np.dstack([rgb, alpha * 255.0]).astype(np.uint8)
+    return Image.fromarray(out)
+
+
+def pose_pair(first, second, dst_first, dst_second, height):
+    """Two poses of one figure, cropped by the same box so they line up."""
+    a = np.array(first)
+    b = np.array(second)
+    a[a[..., 3] < 60] = 0
+    b[b[..., 3] < 60] = 0
+    first, second = Image.fromarray(a), Image.fromarray(b)
+    box_a, box_b = first.getbbox(), second.getbbox()
+    box = (min(box_a[0], box_b[0]), min(box_a[1], box_b[1]), max(box_a[2], box_b[2]), max(box_a[3], box_b[3]))
+    for im, dst in ((first, dst_first), (second, dst_second)):
+        out = fit(im.crop(box), height=height)
+        out.save(OUT / dst)
+        print(dst, out.size)
+
+
 def recolor_blue(im, hue):
     """Shift only the blue cloth to another hue; gold trim and metal stay."""
     a = np.array(im).astype(np.float32) / 255.0
@@ -55,8 +83,8 @@ def recolor_blue(im, hue):
 
 def main():
     # Units
-    sprite("01_archer.png", "archer.png", height=320)
-    sprite("02_orc.png", "orc.png", height=256)
+    pose_pair(load("01_archer.png"), key_black(load("30b_archer_shot.png")), "archer.png", "archer_shot.png", 320)
+    pose_pair(load("02_orc.png"), key_black(load("30a_orc_step.png")), "orc.png", "orc_step.png", 256)
     sprite("03_troll.png", "troll.png", height=512)
     sprite("08_arrow.png", "arrow.png", height=192)
 
@@ -71,12 +99,6 @@ def main():
     floor = floor.resize((512, 316), Image.LANCZOS)
     floor.save(OUT / "bridge_floor.png")
 
-    # Railing: one post plus one beam span, so segments chain end to end
-    rail = clean(load("10_railing.png"))
-    rail = fit(rail.crop((0, 0, 1385, rail.height)), height=256)
-    rail.save(OUT / "railing.png")
-    print("railing.png", rail.size)
-
     # Ground
     for src, dst in (("11_grass.png", "grass.png"), ("12_water.png", "water.png")):
         load(src).convert("RGB").resize((512, 512), Image.LANCZOS).save(OUT / dst)
@@ -89,7 +111,23 @@ def main():
     sprite("17_castle.png", "castle.png", width=1024)
     load("18_sky.png").convert("RGB").save(OUT / "sky.png")
 
+    # Effects
+    sprite("25_puff.png", "puff.png", height=128)
+    sprite("26_spark.png", "spark.png", height=128)
+    sheet = load("27_confetti.png")
+    atlas = Image.new("RGBA", (96 * 3, 96 * 2), (0, 0, 0, 0))
+    for i in range(6):
+        col, row = i % 3, i // 3
+        cell = sheet.crop((col * 512, row * 512, col * 512 + 512, row * 512 + 512))
+        piece = clean(cell, threshold=140)
+        piece.thumbnail((88, 88), Image.LANCZOS)
+        atlas.paste(piece, (col * 96 + (96 - piece.width) // 2, row * 96 + (96 - piece.height) // 2))
+    atlas.save(OUT / "confetti.png")
+    sprite("31_rail_post.png", "rail_post.png", height=256)
+
     # Interface
+    sprite("28_menu_panel.png", "ui_menu_panel.png", width=640)
+    sprite("29_pause_icon.png", "ui_pause.png", height=96)
     sprite("19_level_banner.png", "ui_level_banner.png", width=1024)
     sprite("20a_progress_bar.png", "ui_progress_bar.png", width=1024)
     sprite("20b_castle_icon.png", "ui_castle_icon.png", height=128)

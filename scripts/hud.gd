@@ -22,6 +22,8 @@ var menu: Control
 var music_slider: HSlider
 var sfx_slider: HSlider
 var vibrate_label: Label
+var menu_button: TextureButton
+var menu_buttons := {}  # caption -> button, for the touch self-check
 var vibrate_on := true
 var perf_timer := 0.0
 
@@ -113,7 +115,7 @@ func _ready() -> void:
 	sub_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	sub_label.offset_top = 110
 
-	var menu_button := TextureButton.new()
+	menu_button = TextureButton.new()
 	menu_button.texture_normal = load("res://assets/ui_badge.png")
 	menu_button.ignore_texture_size = true
 	menu_button.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
@@ -125,9 +127,13 @@ func _ready() -> void:
 	menu_button.offset_right = -20
 	menu_button.offset_top = 164
 	menu_button.offset_bottom = 248
-	var bars := _hud_label(menu_button, 34)
-	bars.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	bars.text = "II"
+	var bars := TextureRect.new()
+	bars.texture = load("res://assets/ui_pause.png")
+	bars.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	bars.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	bars.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	menu_button.add_child(bars)
+	bars.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 24)
 	if OS.is_debug_build():
 		perf_button = Button.new()
 		perf_button.flat = true
@@ -186,28 +192,39 @@ func _build_menu(root: Control) -> void:
 	menu.visible = false
 	root.add_child(menu)
 
-	var panel := PanelContainer.new()
-	var box := StyleBoxFlat.new()
-	box.bg_color = Color(0.07, 0.13, 0.35)
-	box.border_color = Color(1.0, 0.75, 0.1)
-	box.set_border_width_all(6)
-	box.set_corner_radius_all(28)
-	box.set_content_margin_all(36)
-	panel.add_theme_stylebox_override("panel", box)
+	var panel := MarginContainer.new()
 	menu.add_child(panel)
 	panel.anchor_left = 0.5
 	panel.anchor_right = 0.5
 	panel.anchor_top = 0.5
 	panel.anchor_bottom = 0.5
-	panel.offset_left = -290
-	panel.offset_right = 290
-	panel.offset_top = -380
-	panel.offset_bottom = 380
+	panel.offset_left = -310
+	panel.offset_right = 310
+	panel.offset_top = -450
+	panel.offset_bottom = 450
+	for side in ["left", "right", "bottom"]:
+		panel.add_theme_constant_override("margin_" + side, 62)
+	panel.add_theme_constant_override("margin_top", 150)
+	var frame := TextureRect.new()
+	frame.texture = load("res://assets/ui_menu_panel.png")
+	frame.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	frame.stretch_mode = TextureRect.STRETCH_SCALE
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	menu.add_child(frame)
+	frame.anchor_left = 0.5
+	frame.anchor_right = 0.5
+	frame.anchor_top = 0.5
+	frame.anchor_bottom = 0.5
+	frame.offset_left = -310
+	frame.offset_right = 310
+	frame.offset_top = -450
+	frame.offset_bottom = 450
+	menu.move_child(frame, 0)
 
 	var rows := VBoxContainer.new()
-	rows.add_theme_constant_override("separation", 22)
+	rows.add_theme_constant_override("separation", 10)
 	panel.add_child(rows)
-	var title := _hud_label(rows, 64)
+	var title := _hud_label(rows, 56)
 	title.text = "MENU"
 
 	music_slider = _menu_slider(rows, "Music")
@@ -235,7 +252,7 @@ func _menu_slider(rows: Control, text: String) -> HSlider:
 	slider.min_value = 0.0
 	slider.max_value = 1.0
 	slider.step = 0.05
-	slider.custom_minimum_size = Vector2(0, 70)
+	slider.custom_minimum_size = Vector2(0, 64)
 	var track := StyleBoxFlat.new()
 	track.bg_color = Color(0.02, 0.05, 0.18)
 	track.set_corner_radius_all(9)
@@ -261,12 +278,13 @@ func _menu_button(rows: Control, text: String, action: Callable) -> Label:
 	b.texture_normal = load("res://assets/ui_button.png")
 	b.ignore_texture_size = true
 	b.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-	b.custom_minimum_size = Vector2(0, 104)
+	b.custom_minimum_size = Vector2(0, 92)
 	b.pressed.connect(action)
 	rows.add_child(b)
 	var l := _hud_label(b, 38)
 	l.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	l.text = text
+	menu_buttons[text] = b
 	return l
 
 

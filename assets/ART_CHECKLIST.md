@@ -36,7 +36,15 @@ spelklare bestanden in `assets/` van.
 - [x] 23. Munt
 - [x] 24. App-icoon
 
-## Ronde 4 – later
-- [ ] 25. Sterke vijand (gepantserde ork)
-- [ ] 26. Ton of kist met ruimte voor een teller
-- [ ] 27. Loop- en schietanimaties als sprite sheet (alleen als de code-animatie niet volstaat)
+## Ronde 4 – effecten en animatie
+- [x] 25. Rookwolkje (wit, wordt in het spel gekleurd) – `puff.png`
+- [x] 26. Inslagvonk – `spark.png`
+- [x] 27. Confetti, zes stukjes – `confetti.png`
+- [x] 28. Menupaneel – `ui_menu_panel.png`
+- [x] 29. Pauze-icoon – `ui_pause.png`
+- [x] 30. Tweede pose: ork (stap) en boogschutter (na het schot) – `orc_step.png`, `archer_shot.png`
+- [x] 31. Paal voor de brugleuning – `rail_post.png` (vervangt nummer 10)
+
+## Ronde 5 – later
+- [ ] 32. Sterke vijand (gepantserde ork)
+- [ ] 33. Ton of kist met ruimte voor een teller

@@ -21,8 +21,9 @@ uitleg ziet eruit als een levend spel.
 3. [x] Poorten: getal veert op bij groei, deeltjes en geluid bij doorlopen, nieuwe
    boogschutters "ploppen" erin, verliezen als rood getal en rode wolkjes.
 4. [x] Schieten: terugslag per boogschutter. [ ] Pijlen met spoor.
-5. [x] Lopen: orks en boogschutters wiegen en stuiteren in code. [ ] Twee-frame
-   loopje (eerst proef of de generator het figuur consistent houdt).
+5. [x] Lopen: orks wisselen tussen twee poses en wiegen; boogschutters tonen een
+   aparte pose na het schot. De generator hield de figuren consistent, dus
+   pose-animatie via bewerkte afbeeldingen werkt.
 6. [x] Trol: stampen met camerabeweging, oplichten, levensbalk, uiteenspatten.
 7. [x] Camera: schok bij verlies en baas. [ ] Inzoomen bij winst.
 8. [x] Trillen bij poort, verlies, stamp en winst.
@@ -90,7 +91,8 @@ landen, daarna opschalen of naar een uitgever met de cijfers.
   bestaande sprites.
 - Extra frames alleen waar code niet volstaat. Eerst één proef (ork, twee frames)
   om te zien of de generator het figuur consistent houdt.
-- Opnieuw maken: de leuning (voor deze camerahoek), en alles wat bij fase 2 nieuw is.
+- De leuning is vervangen door losse palen die rechtop staan.
+- Werkwijze: voor alles wat een plaatje is eerst prompts vragen; beweging in code.
 - Per nieuwe sprite dezelfde stijlprompt en dezelfde referentie-afbeelding.
 
 ## Juridisch (geen juridisch advies)

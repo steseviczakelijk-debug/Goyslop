@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c0rfek38mmp2w"
-path="res://.godot/imported/railing.png-c34f002efa6db49ff923793fa1d21733.ctex"
+uid="uid://bqwiwmfwpxu0s"
+path="res://.godot/imported/archer_shot.png-2bf962dc2cada1c0aed81ba1c1ffb02c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/railing.png"
-dest_files=["res://.godot/imported/railing.png-c34f002efa6db49ff923793fa1d21733.ctex"]
+source_file="res://assets/archer_shot.png"
+dest_files=["res://.godot/imported/archer_shot.png-2bf962dc2cada1c0aed81ba1c1ffb02c.ctex"]
 
 [params]
 

@@ -295,15 +295,17 @@ func _finish(win: bool) -> void:
 ## menu's own buttons, and reports whether each did what it should.
 func _run_tap_test() -> void:
 	var size := get_viewport().get_visible_rect().size
+	var menu_at := func(): return hud.menu_button.get_global_rect().get_center()
 	var steps := [
-		[0.5, Vector2(size.x - 62, 206), "menu button opens menu, game stays in menu state", func(): return paused and state == State.MENU],
-		[1.0, Vector2(size.x * 0.5, size.y * 0.5 + 276), "resume closes menu", func(): return not paused and state == State.MENU],
-		[1.5, Vector2(size.x * 0.5, size.y * 0.8), "tap on field starts the game", func(): return state == State.PLAY],
-		[2.0, Vector2(size.x - 62, 206), "menu button pauses play", func(): return paused and state == State.PLAY],
-		[2.5, Vector2(size.x * 0.5, size.y * 0.5 + 150), "vibration toggles off", func(): return settings.vibrate == false],
+		[0.5, menu_at, "menu button opens menu, game stays in menu state", func(): return paused and state == State.MENU],
+		[1.0, func(): return hud.menu_buttons["RESUME"].get_global_rect().get_center(), "resume closes menu", func(): return not paused and state == State.MENU],
+		[1.5, func(): return Vector2(size.x * 0.5, size.y * 0.8), "tap on field starts the game", func(): return state == State.PLAY],
+		[2.0, menu_at, "menu button pauses play", func(): return paused and state == State.PLAY],
+		[2.5, func(): return hud.menu_buttons[""].get_global_rect().get_center(), "vibration toggles off", func(): return settings.vibrate == false],
+		[3.0, func(): return hud.menu_buttons["RESTART LEVEL"].get_global_rect().get_center(), "restart closes menu and restarts", func(): return not paused and state == State.PLAY and sim.distance < 5.0],
 	]
 	if tap_step >= steps.size():
-		if shot_clock > 3.2:
+		if shot_clock > 3.7:
 			get_tree().quit()
 		return
 	var step: Array = steps[tap_step]
@@ -314,8 +316,8 @@ func _run_tap_test() -> void:
 			var ev := InputEventMouseButton.new()
 			ev.button_index = MOUSE_BUTTON_LEFT
 			ev.pressed = pressed
-			ev.position = step[1]
-			ev.global_position = step[1]
+			ev.position = step[1].call()
+			ev.global_position = ev.position
 			Input.parse_input_event(ev)
 		tap_sent += 1
 	elif shot_clock > step[0] + 0.25:
