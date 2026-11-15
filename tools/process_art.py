@@ -52,6 +52,29 @@ def key_black(im):
     return Image.fromarray(out)
 
 
+def key_checkerboard(im):
+    """Remove a painted-in white/grey 'transparency' checkerboard.
+
+    Only pale, colourless pixels that connect to the image border are removed,
+    so highlights inside the figure survive.
+    """
+    from PIL import ImageFilter
+    a = np.array(im.convert("RGB")).astype(np.int16)
+    pale = (a.max(axis=2) - a.min(axis=2) < 16) & (a.min(axis=2) > 222)
+    reached = np.zeros_like(pale)
+    reached[0, :], reached[-1, :], reached[:, 0], reached[:, -1] = pale[0, :], pale[-1, :], pale[:, 0], pale[:, -1]
+    while True:
+        grown = np.array(Image.fromarray((reached * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(9))) > 0
+        grown &= pale
+        if grown.sum() == reached.sum():
+            break
+        reached = grown
+    # Eat two more pixels so no pale fringe is left around the figure.
+    edge = np.array(Image.fromarray((reached * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(5))) > 0
+    out = np.dstack([a, np.where(edge, 0, 255)]).astype(np.uint8)
+    return Image.fromarray(out)
+
+
 def pose_pair(first, second, dst_first, dst_second, height):
     """Two poses of one figure, cropped by the same box so they line up."""
     a = np.array(first)
@@ -85,7 +108,9 @@ def main():
     # Units
     pose_pair(load("01_archer.png"), key_black(load("30b_archer_shot.png")), "archer.png", "archer_shot.png", 320)
     pose_pair(load("02_orc.png"), key_black(load("30a_orc_step.png")), "orc.png", "orc_step.png", 256)
-    sprite("03_troll.png", "troll.png", height=512)
+    pose_pair(load("03_troll.png"), key_checkerboard(load("36_troll_step.png")), "troll.png", "troll_step.png", 512)
+    sprite("35a_troll_windup.png", "troll_windup.png", height=512)
+    sprite("35b_troll_smash.png", "troll_smash.png", height=512)
     sprite("08_arrow.png", "arrow.png", height=192)
     sprite("34_orc_fall.png", "orc_fall.png", height=256)
 

@@ -37,6 +37,12 @@ const BOSS_SPEED := 1.8
 const BOSS_STEER := 1.0
 const BOSS_STOP_DISTANCE := 22.0
 const BOSS_HP_PER_SOLDIER := 30.0
+const BOSS_REACH := 3.4          # how far in front of himself the mace lands
+const BOSS_WINDUP := 0.9         # seconds of warning before the smash
+const BOSS_RECOVER := 0.7        # seconds before he raises the mace again
+const BOSS_SMASH_HALF := 1.7     # half-width of the impact
+const BOSS_SMASH_SHARE := 0.35   # part of the squad a direct hit removes
+const BOSS_SMASH_MIN := 4
 
 # Rewards
 const COINS_PER_KILL := 1

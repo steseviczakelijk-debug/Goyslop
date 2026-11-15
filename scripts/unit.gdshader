@@ -8,6 +8,7 @@ uniform sampler2D tex : source_color, filter_linear, repeat_disable;
 uniform sampler2D tex2 : source_color, filter_linear, repeat_disable;
 uniform float flash = 0.0;
 uniform float tilt = 0.0;
+uniform float pose = 0.0;
 
 varying float v_flash;
 varying float v_pose;
@@ -16,7 +17,7 @@ void vertex() {
 	float a = tilt + INSTANCE_CUSTOM.y;
 	VERTEX.xy = mat2(vec2(cos(a), sin(a)), vec2(-sin(a), cos(a))) * VERTEX.xy;
 	v_flash = max(flash, INSTANCE_CUSTOM.x);
-	v_pose = INSTANCE_CUSTOM.z;
+	v_pose = max(pose, INSTANCE_CUSTOM.z);
 	MODELVIEW_MATRIX = VIEW_MATRIX * mat4(MAIN_CAM_INV_VIEW_MATRIX[0], MAIN_CAM_INV_VIEW_MATRIX[1], MAIN_CAM_INV_VIEW_MATRIX[2], MODEL_MATRIX[3]);
 	MODELVIEW_MATRIX = MODELVIEW_MATRIX * mat4(
 		vec4(length(MODEL_MATRIX[0].xyz), 0.0, 0.0, 0.0),

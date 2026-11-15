@@ -17,14 +17,17 @@ seconde met een zichtbare fps-teller, en de code is opgedeeld.
 Eindresultaat: elke gebeurtenis geeft beeld én geluid; tien seconden opname zonder
 uitleg ziet eruit als een levend spel.
 1. [x] Treffers: witte flits op de ork, geluid.
-2. [x] Dood van een ork: rookwolkje, munt die opspringt.
+2. [x] Dood van een ork: valt achterover met een eigen pose, rookwolkje, munt.
 3. [x] Poorten: getal veert op bij groei, deeltjes en geluid bij doorlopen, nieuwe
    boogschutters "ploppen" erin, verliezen als rood getal en rode wolkjes.
 4. [x] Schieten: terugslag per boogschutter, pijlen met boog en spoor.
 5. [x] Lopen: orks wisselen tussen twee poses en wiegen; boogschutters tonen een
    aparte pose na het schot. De generator hield de figuren consistent, dus
    pose-animatie via bewerkte afbeeldingen werkt.
-6. [x] Trol: stampen met camerabeweging, oplichten, levensbalk, uiteenspatten.
+6. [x] Trol: loopt met twee poses, stampt met camerabeweging, licht op, heeft een
+   levensbalk en spat uiteen. Hij haalt uit met een eigen pose (knots omhoog, dan op
+   de grond); de klap kost 35 procent van je leger en is te ontwijken. De rode
+   waarschuwingsvlek op de grond is nog in code getekend.
 7. [x] Camera: schok bij verlies en baas. [ ] Inzoomen bij winst.
 8. [x] Trillen bij poort, verlies, stamp en winst.
 9. [x] Geluid: dertien effecten en één muziekstuk, allemaal gesynthetiseerd als

@@ -46,8 +46,8 @@ spelklare bestanden in `assets/` van.
 - [x] 31. Paal voor de brugleuning – `rail_post.png` (vervangt nummer 10)
 
 - [x] 34. Ork valt achterover – `orc_fall.png`
-- [ ] 35. Trol haalt uit: knots omhoog en knots naar beneden
-- [ ] 36. Trol, tweede stap
+- [x] 35. Trol haalt uit: knots omhoog en knots naar beneden – `troll_windup.png`, `troll_smash.png`
+- [x] 36. Trol, tweede stap – `troll_step.png`
 
 ## Ronde 5 – later
 - [ ] 32. Sterke vijand (gepantserde ork)

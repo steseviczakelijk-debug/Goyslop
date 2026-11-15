@@ -57,6 +57,9 @@ var shown_before := 0
 var lost_pending := 0
 var lost_timer := 0.0
 var boss_mat: ShaderMaterial
+var boss_meshes: Array[QuadMesh] = []   # walking, mace raised, mace down
+var boss_pose_shown := 0
+var boss_warning: MeshInstance3D          # red patch where the mace will land
 var boss_sprite: MeshInstance3D
 var boss_bar: MeshInstance3D
 var boss_step := 0.0
@@ -354,9 +357,31 @@ func _build_world() -> void:
 
 	boss_node = Node3D.new()
 	_instance(_blob_mesh(5.0), Vector3(0, 0.04, 0), boss_node)
-	var troll := _unit_mesh("res://assets/troll.png", 5.6)
+	# The three troll pictures are drawn at different zoom levels; these heights
+	# keep his body the same size in all of them.
+	var troll := _unit_mesh("res://assets/troll.png", 5.6, "res://assets/troll_step.png")
+	var smash := _unit_mesh("res://assets/troll_smash.png", 5.35)
+	boss_meshes = [troll, _unit_mesh("res://assets/troll_windup.png", 6.5), smash]
 	boss_mat = troll.material
 	boss_sprite = _instance(troll, Vector3.ZERO, boss_node)
+
+	var glow := Gradient.new()
+	glow.set_color(0, Color(1.0, 0.15, 0.1, 0.75))
+	glow.set_color(1, Color(1.0, 0.15, 0.1, 0.0))
+	var glow_tex := GradientTexture2D.new()
+	glow_tex.gradient = glow
+	glow_tex.fill = GradientTexture2D.FILL_RADIAL
+	glow_tex.fill_from = Vector2(0.5, 0.5)
+	glow_tex.fill_to = Vector2(1.0, 0.5)
+	glow_tex.width = 64
+	glow_tex.height = 64
+	var glow_mat := _unshaded(glow_tex)
+	glow_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	var patch := PlaneMesh.new()
+	patch.size = Vector2(B.BOSS_SMASH_HALF * 2.6, B.BOSS_SMASH_HALF * 2.6)
+	patch.material = glow_mat
+	boss_warning = _instance(patch, Vector3(0, 0.06, B.BOSS_REACH), boss_node)
+	boss_warning.visible = false
 	var bar_back := _bar_mesh(Color(0.08, 0.1, 0.2), 3.3, 0.42)
 	_instance(bar_back, Vector3(0, 5.2, 0), boss_node)
 	boss_bar = _instance(_bar_mesh(Color(0.95, 0.2, 0.15), 3.1, 0.26), Vector3(0, 5.2, 0.02), boss_node)
@@ -517,15 +542,34 @@ func render(sim: Sim, time: float) -> void:
 		var frac := clampf(sim.boss_hp / sim.boss_max, 0.0, 1.0)
 		boss_bar.scale.x = maxf(frac, 0.001)
 		boss_bar.position.x = -(1.0 - frac) * 1.55
+		if sim.boss_pose != boss_pose_shown:
+			boss_pose_shown = sim.boss_pose
+			boss_sprite.mesh = boss_meshes[boss_pose_shown]
+			boss_mat = boss_sprite.mesh.material
 		boss_mat.set_shader_parameter("flash", sim.boss_flash * 0.35)
-		# The troll stomps: every footfall shakes the ground once it is close.
-		var step := sin(time * 3.2)
-		boss_sprite.position.y = absf(step) * 0.3
-		boss_mat.set_shader_parameter("tilt", step * 0.05)
-		if step * boss_step < 0.0 and sim.boss_z > -40.0:
-			add_shake(0.12)
-			stomped = true
-		boss_step = step
+		boss_warning.visible = sim.boss_pose == 1
+		if sim.boss_pose == 0:
+			# The troll stomps: every footfall shakes the ground once it is close.
+			var step := sin(time * 3.2)
+			boss_sprite.position = Vector3(0, absf(step) * 0.3, 0)
+			boss_mat.set_shader_parameter("tilt", step * 0.03)
+			boss_mat.set_shader_parameter("pose", 1.0 if step > 0.0 else 0.0)
+			if step * boss_step < 0.0 and sim.boss_z > -40.0:
+				add_shake(0.12)
+				stomped = true
+			boss_step = step
+		elif sim.boss_pose == 1:
+			# Mace raised: he stretches and trembles while the warning patch grows.
+			var charge := 1.0 - sim.boss_timer / B.BOSS_WINDUP
+			boss_sprite.position = Vector3(0, charge * 0.25, 0)
+			boss_mat.set_shader_parameter("tilt", sin(time * 40.0) * 0.015 * charge)
+			var grow := 0.35 + 0.65 * charge
+			boss_warning.scale = Vector3(grow, 1, grow)
+		else:
+			# Mace on the ground: the picture is anchored at the mace head, which
+			# lies in front of his feet.
+			boss_sprite.position = Vector3(0, 0, 2.3)
+			boss_mat.set_shader_parameter("tilt", 0.0)
 	_sync_gates(sim, dt)
 	_update_effects(dt)
 
@@ -567,6 +611,13 @@ func apply_fx(sim: Sim) -> void:
 				gate_pulse[e[1]] = 1.0
 			"boss_hit":
 				sparks.emit(Vector3(sim.boss_x + randf_range(-1.0, 1.0), randf_range(1.0, 3.5), sim.boss_z + 0.5), Vector3.ZERO, 0.14, 1.1, Color.WHITE, 0.0, 6.0)
+			"smash":
+				add_shake(0.5)
+				var ground := Vector3(e[1], 0.3, e[2])
+				for k in 16:
+					var dir := Vector3(cos(k * 0.39), 0.0, sin(k * 0.39))
+					puffs.emit(ground + dir * 0.8, dir * randf_range(3.0, 5.0) + Vector3(0, randf_range(0.5, 2.0), 0), 0.55, 1.3, Color(0.85, 0.8, 0.7, 0.95), 0.0, randf_range(-2.0, 2.0))
+				sparks.emit(ground + Vector3(0, 0.6, 0.3), Vector3.ZERO, 0.2, 3.0, Color.WHITE, 0.0, 4.0)
 			"boss_dead":
 				add_shake(0.6)
 				for k in 36:
@@ -590,6 +641,10 @@ func celebrate(sim: Sim) -> void:
 
 func end_celebration() -> void:
 	cheering = false
+	boss_pose_shown = 0
+	boss_sprite.mesh = boss_meshes[0]
+	boss_mat = boss_meshes[0].material
+	boss_warning.visible = false
 	shown_before = 0
 	stomped = false
 

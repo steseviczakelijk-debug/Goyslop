@@ -35,7 +35,8 @@ var next_event := 0
 var outcome := 0  # 0 while playing, 1 on win, -1 on loss
 ## What happened this tick, for the view and audio to react to. Each entry is
 ## [kind, ...]: ["volley"], ["shot", slot], ["hit"], ["kill", x, z], ["lost", x, z, count],
-## ["gate", x, gained, good], ["grow", gate_id], ["boss_hit"], ["boss_dead", x, z].
+## ["gate", x, gained, good], ["grow", gate_id], ["boss_hit"], ["boss_dead", x, z],
+## ["windup"], ["smash", x, z, hit].
 var fx: Array = []
 var coins_earned := 0
 
@@ -63,6 +64,8 @@ var boss_max := 1.0
 var boss_x := 0.0
 var boss_z := 0.0
 var boss_flash := 0.0
+var boss_pose := 0     # 0 walking, 1 mace raised, 2 mace on the ground
+var boss_timer := 0.0
 
 var formation := PackedVector2Array()
 var rng := RandomNumberGenerator.new()
@@ -89,6 +92,10 @@ func _init() -> void:
 func reset(level: int) -> void:
 	_load(LevelGen.generate(level), 1)
 	rng.seed = level
+
+
+func reset_boss_test() -> void:
+	_load(LevelGen.boss_only(), 60)
 
 
 func reset_stress() -> void:
@@ -146,6 +153,8 @@ func _spawn(ev: Dictionary) -> void:
 			boss_max = boss_hp
 			boss_x = 0.0
 			boss_z = z
+			boss_pose = 0
+			boss_timer = 0.0
 
 
 func _spawn_gate(def: Dictionary, x0: float, x1: float, z: float) -> void:
@@ -319,13 +328,36 @@ func _update_boss(dt: float) -> void:
 		return
 	if boss_z > -B.BOSS_STOP_DISTANCE:
 		scroll = 0.0
-	boss_z += (scroll + B.BOSS_SPEED) * dt
-	boss_x = move_toward(boss_x, squad_x, B.BOSS_STEER * dt)
 	boss_flash = maxf(0.0, boss_flash - dt * 9.0)
 	if boss_hp <= 0.0:
 		boss_active = false
 		coins_earned += B.COINS_PER_BOSS
 		fx.append(["boss_dead", boss_x, boss_z])
 		outcome = 1
-	elif boss_z > -squad_r - B.BOSS_R:
-		soldiers = 0
+		return
+	boss_x = move_toward(boss_x, squad_x, B.BOSS_STEER * dt)
+	match boss_pose:
+		0:
+			# Walk up until the squad is within reach of the mace.
+			boss_z += (scroll + B.BOSS_SPEED) * dt
+			if boss_z > -squad_r - B.BOSS_REACH:
+				boss_pose = 1
+				boss_timer = B.BOSS_WINDUP
+				fx.append(["windup"])
+		1:
+			boss_timer -= dt
+			if boss_timer <= 0.0:
+				# The mace lands where the troll is facing now: step aside in
+				# time and it misses.
+				var hit := absf(squad_x - boss_x) < B.BOSS_SMASH_HALF + squad_r * 0.5
+				fx.append(["smash", boss_x, boss_z + B.BOSS_REACH, hit])
+				if hit:
+					var loss := mini(soldiers, maxi(B.BOSS_SMASH_MIN, int(ceilf(soldiers * B.BOSS_SMASH_SHARE))))
+					soldiers -= loss
+					fx.append(["lost", squad_x, -squad_r, loss])
+				boss_pose = 2
+				boss_timer = B.BOSS_RECOVER
+		2:
+			boss_timer -= dt
+			if boss_timer <= 0.0:
+				boss_pose = 0

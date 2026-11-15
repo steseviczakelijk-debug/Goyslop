@@ -49,6 +49,11 @@ static func generate(lv: int) -> Dictionary:
 	return {"events": events, "length": s}
 
 
+## Only the boss, tough enough to reach the squad: for checking his attack.
+static func boss_only() -> Dictionary:
+	return {"events": [{"s": 30.0, "type": "boss", "hp": 1000000.0}], "length": 30.0}
+
+
 ## A deliberately brutal level for measuring performance on a phone.
 static func stress() -> Dictionary:
 	var events: Array = []

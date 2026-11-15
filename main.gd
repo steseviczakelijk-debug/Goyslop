@@ -39,6 +39,7 @@ var shot_file := ""
 var shot_clock := 0.0
 var shot_menu := false
 var tap_test := false
+var boss_test := false
 var tap_step := 0
 var tap_sent := 0
 
@@ -51,6 +52,8 @@ func _ready() -> void:
 			tap_test = true
 		elif a == "--menu":
 			shot_menu = true
+		elif a == "--boss-test":
+			boss_test = true
 		elif a == "--stress":
 			autoplay = true
 			stress = true
@@ -89,7 +92,9 @@ func _ready() -> void:
 
 
 func _reset_level() -> void:
-	if stress:
+	if boss_test:
+		sim.reset_boss_test()
+	elif stress:
 		sim.reset_stress()
 	else:
 		sim.reset(level)
@@ -221,6 +226,12 @@ func _play_fx() -> void:
 				_buzz(12, 0.07)
 			"boss_dead":
 				audio.play("boss_dead", 2.0)
+			"windup":
+				audio.play("lost", -6.0, 0.0, 0.0)
+			"smash":
+				audio.play("stomp", 6.0, 0.0, 0.0)
+				buzz_ready = 0.0
+				_buzz(70)
 	if world.stomped:
 		world.stomped = false
 		audio.play("stomp", -2.0)
