@@ -23,7 +23,7 @@ Alle sprites: transparante PNG, zelfde stijl en camerahoek als `archer.png`
 - [x] 15. Rots – ontvangen, nog niet verwerkt
 - [x] 16. Banier op paal – ontvangen, nog niet verwerkt
 - [x] 17. Kasteel – ontvangen, nog niet verwerkt
-- [ ] 18. Lucht met wolken (achtergrond)
+- [x] 18. Lucht met wolken – ontvangen, nog niet verwerkt
 
 ## Ronde 3 – interface
 - [ ] 19. Levelbanner: leeg perkament met twee schildjes
