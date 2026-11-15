@@ -12,7 +12,7 @@ Alle sprites: transparante PNG, zelfde stijl en camerahoek als `archer.png`
 - [ ] 6. Vermenigvuldigpoort: gouden banier, zonder getal
 - [x] 7. Poortpaal (hout met gouden knop) – ontvangen, nog niet verwerkt
 - [x] 8. Pijl – ontvangen, nog niet verwerkt
-- [ ] 9. Brugdek: stenen tegels, naadloos herhaalbaar, recht van boven
+- [x] 9. Brugdek: stenen tegels – ontvangen, nog niet verwerkt (naden bijwerken)
 - [ ] 10. Brugleuning: houten segment, herhaalbaar
 
 ## Ronde 2 – omgeving
