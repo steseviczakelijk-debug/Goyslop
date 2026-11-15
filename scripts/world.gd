@@ -43,6 +43,7 @@ var cam_home := Vector3.ZERO
 var shake := 0.0
 var cheering := false
 var puffs: Particles
+var fallen: Particles   # orcs knocked off their feet
 var sparks: Particles
 var confetti: Particles
 var coins_fx: Particles
@@ -366,6 +367,9 @@ func _build_world() -> void:
 	add_child(boss_node)
 
 	# Effects: smoke puffs, impact sparks, confetti, coins and floating numbers.
+	fallen = _particles("res://assets/orc_fall.png", 120)
+	fallen.gravity = 16.0
+	fallen.shrinks = true
 	puffs = _particles("res://assets/puff.png", 300)
 	puffs.shrinks = true
 	sparks = _particles("res://assets/spark.png", 80)
@@ -537,8 +541,9 @@ func apply_fx(sim: Sim) -> void:
 				kills += 1
 				if kills <= 10:
 					var at := Vector3(e[1], 0.6, e[2])
-					for k in 3:
-						puffs.emit(at, Vector3(randf_range(-1.5, 1.5), randf_range(0.5, 2.5), randf_range(-1.0, 1.0)), 0.4, 0.75, Color(0.8, 1.0, 0.65, 0.95), 0.0, randf_range(-2.0, 2.0))
+					# The orc is thrown backward, tumbling, and leaves a puff behind.
+					fallen.emit(at + Vector3(0, 0.2, 0), Vector3(randf_range(-2.0, 2.0), randf_range(4.5, 6.5), randf_range(-7.0, -4.0)), 0.5, 1.7, Color.WHITE, 0.0, randf_range(-7.0, 7.0))
+					puffs.emit(at, Vector3(randf_range(-1.0, 1.0), randf_range(0.5, 1.5), 0.0), 0.4, 0.75, Color(0.8, 1.0, 0.65, 0.95), 0.0, randf_range(-2.0, 2.0))
 					if kills <= 4:
 						sparks.emit(at, Vector3.ZERO, 0.12, 0.8, Color.WHITE, 0.0, 6.0)
 					if kills <= 3:
@@ -601,6 +606,7 @@ func _float_text(text: String, at: Vector3, color: Color) -> void:
 
 
 func _update_effects(dt: float) -> void:
+	fallen.update(dt)
 	puffs.update(dt)
 	sparks.update(dt)
 	confetti.update(dt)

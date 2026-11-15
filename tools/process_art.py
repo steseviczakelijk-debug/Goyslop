@@ -87,6 +87,7 @@ def main():
     pose_pair(load("02_orc.png"), key_black(load("30a_orc_step.png")), "orc.png", "orc_step.png", 256)
     sprite("03_troll.png", "troll.png", height=512)
     sprite("08_arrow.png", "arrow.png", height=192)
+    sprite("34_orc_fall.png", "orc_fall.png", height=256)
 
     # Gates: one shape, three colours
     gate = sprite("04_gate_blue.png", "gate_blue.png", width=512)
