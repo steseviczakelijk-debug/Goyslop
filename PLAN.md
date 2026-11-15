@@ -24,13 +24,15 @@ Goed spelen wordt beloond en verliezen is mogelijk.
 - [x] Gemeten (`scripts/bench.gd`): perfecte bot wint alle levels 1–260;
       gemiddelde bot 79% op level 1–30 en 76% op 31–100; slechte bot 15%.
 
-## Stap 2 – Winstmoment
+## Stap 2 – Winstmoment (gedaan, art nog tijdelijk)
 Elke overwinning voelt als een prijs.
-- Sterren naar legergrootte; munten die één voor één optellen met oplopende toon;
-  een rad na de baas dat de beloning vermenigvuldigt (x1 tot x5); de knop
-  "volgende level" verschijnt pas na het feest.
-- Art: sterren, rad met wijzer, lichtstralen voor het winstscherm.
-- Geslaagd als het winstscherm 5–8 seconden duurt en je er niet doorheen tikt.
+- [x] Sterren naar legergrootte: 3 bij minstens 85% van het perfecte leger, 2 bij
+      60%, anders 1.
+- [x] Munten tellen op met een oplopende toon.
+- [x] Rad na de baas (x1 x2 x1 x3 x2 x1 x4 x5, elk vak even waarschijnlijk);
+      tikken om te draaien; de bonus wordt bij je munten geteld.
+- [x] De knop "volgende level" verschijnt pas na het rad.
+- [ ] Art: sterren, rad, wijzer en lichtstralen zijn nu in code getekend.
 
 ## Stap 3 – Verrassingen
 Tijdens het level gebeurt iets onverwachts.

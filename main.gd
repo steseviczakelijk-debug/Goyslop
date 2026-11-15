@@ -29,6 +29,8 @@ var settings := {}
 var slowmo := 0.0          # real seconds of slow motion left
 var overlay_delay := -1.0  # real seconds until the win/lose panel appears
 var overlay_args: Array = []
+var win_stars := 0
+var win_earned := 0
 
 # Test hooks, set from the command line after "--".
 var autoplay := false
@@ -40,9 +42,11 @@ var shot_clock := 0.0
 var shot_menu := false
 var tap_test := false
 var boss_test := false
+var win_test := false   # test runs: show the win screen and spin by itself
 var idle_bot := false  # test runs: let the squad stand still
 var bot := Bot.new("perfect")
 var tap_step := 0
+var win_test_step := 0
 var tap_sent := 0
 
 
@@ -52,6 +56,8 @@ func _ready() -> void:
 			autoplay = true
 		elif a == "--tap-test":
 			tap_test = true
+		elif a == "--win-test":
+			win_test = true
 		elif a == "--menu":
 			shot_menu = true
 		elif a.begins_with("--bot="):
@@ -88,6 +94,8 @@ func _ready() -> void:
 	hud.restart_requested.connect(_restart)
 	hud.settings_changed.connect(_on_settings_changed)
 	hud.coin_landed.connect(func(): audio.play("coin", -14.0, 0.06, 0.12))
+	hud.win_screen.sfx.connect(func(sound, pitch): audio.play_pitched(sound, -4.0, pitch))
+	hud.win_screen.finished.connect(_on_wheel_done)
 	hud.load_settings(settings.music, settings.sfx, settings.vibrate)
 	audio = Audio.new()
 	add_child(audio)
@@ -116,6 +124,15 @@ func _start() -> void:
 	hud.hide_overlay()
 	audio.play("click")
 	audio.start_music()
+
+
+## The wheel has stopped: pay out what it added on top of the level's coins.
+func _on_wheel_done(multiplier: int) -> void:
+	coins += win_earned * (multiplier - 1)
+	win_earned = 0
+	buzz_ready = 0.0
+	_buzz(40 * multiplier)
+	_save()
 
 
 func _restart() -> void:
@@ -166,8 +183,13 @@ func _unhandled_input(event: InputEvent) -> void:
 			State.MENU:
 				_start()
 			State.WIN, State.LOSE:
-				_reset_level()
-				_start()
+				# While the reward plays out a tap spins the wheel; only after
+				# that does it move on.
+				if hud.win_screen.busy():
+					hud.win_screen.tap()
+				else:
+					_reset_level()
+					_start()
 
 
 func _process(dt: float) -> void:
@@ -180,6 +202,15 @@ func _process(dt: float) -> void:
 		_take_shot()
 	if tap_test:
 		_run_tap_test()
+	if win_test:
+		if win_test_step == 0 and shot_clock > 0.5:
+			win_test_step = 1
+			state = State.WIN
+			win_earned = 654
+			hud.show_win(2, 654, 4)
+		elif win_test_step == 1 and shot_clock > 4.2:
+			win_test_step = 2
+			hud.win_screen.tap()
 	if paused:
 		return
 	time += dt
@@ -265,7 +296,10 @@ func _run_timers(real_dt: float) -> void:
 	if overlay_delay >= 0.0:
 		overlay_delay -= real_dt
 		if overlay_delay < 0.0:
-			hud.show_overlay.callv(overlay_args)
+			if state == State.WIN:
+				hud.show_win(win_stars, win_earned, level * 7919 + coins)
+			else:
+				hud.show_overlay.callv(overlay_args)
 
 
 func _end_slowmo() -> void:
@@ -298,8 +332,15 @@ func _finish(win: bool) -> void:
 			Engine.time_scale = 0.3
 	if autoplay:
 		print("RESULT level=%d win=%s soldiers=%d progress=%.2f" % [level, win, sim.soldiers, sim.progress()])
+	if win:
+		# Stars compare the surviving army with the level's perfect route.
+		var perfect: float = sim.events[-1].get("army", 0.0)
+		var kept := sim.soldiers / perfect if perfect > 0.0 else 1.0
+		win_stars = 3 if kept >= B.STARS_3 else (2 if kept >= B.STARS_2 else 1)
+		win_earned = sim.coins_earned
 	if stress:
 		stress = false
+		win_earned = 0
 	else:
 		coins += sim.coins_earned
 		if win:

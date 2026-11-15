@@ -52,6 +52,16 @@ func play(sound: String, volume_db := 0.0, gap := 0.0, pitch_spread := 0.08) -> 
 	p.play()
 
 
+## Plays `sound` at an exact pitch, for rising tones.
+func play_pitched(sound: String, volume_db: float, pitch: float) -> void:
+	var p := players[next_voice]
+	next_voice = (next_voice + 1) % VOICES
+	p.stream = streams[sound]
+	p.volume_db = volume_db
+	p.pitch_scale = clampf(pitch, 0.5, 3.0)
+	p.play()
+
+
 func start_music() -> void:
 	if not music.playing:
 		music.play()

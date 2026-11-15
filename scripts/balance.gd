@@ -59,6 +59,8 @@ const BOSS_SMASH_SHARE := 0.35   # part of the squad a direct hit removes
 const BOSS_SMASH_MIN := 4
 
 # Rewards
+const STARS_3 := 0.85   # part of the perfect army you must still have for three stars
+const STARS_2 := 0.6
 const COINS_PER_KILL := 1
 const COINS_PER_BOSS := 50
 

@@ -9,6 +9,7 @@ signal restart_requested
 signal coin_landed
 
 const INK := Color(0.05, 0.1, 0.3)
+const WinScreen = preload("res://scripts/win_screen.gd")
 
 var level_label: Label
 var coin_label: Label
@@ -20,6 +21,8 @@ var progress_width := 0.0
 var overlay: Control
 var msg_label: Label
 var title_banner: TextureRect
+var result_button: TextureRect
+var win_screen: WinScreen
 var sub_label: Label
 var button_label: Label
 var perf_button: Button
@@ -122,7 +125,11 @@ func _ready() -> void:
 	msg_label = _hud_label(overlay, 100)
 	msg_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	msg_label.offset_bottom = -520
+	win_screen = WinScreen.new()
+	overlay.add_child(win_screen)
+	win_screen.finished.connect(func(_multiplier): result_button.visible = true)
 	var button := _hud_image(overlay, "res://assets/ui_button.png", 400, 0)
+	result_button = button
 	button.anchor_top = 0.5
 	button.anchor_bottom = 0.5
 	button.offset_top = -110
@@ -183,6 +190,23 @@ func show_overlay(title: String, button: String, sub: String) -> void:
 	msg_label.add_theme_font_size_override("font_size", 70 if title_banner.visible else 100)
 	button_label.text = button
 	sub_label.text = sub
+	win_screen.stop()
+	result_button.visible = true
+	_move_result_button(-110)
+
+
+func _move_result_button(top: float) -> void:
+	result_button.offset_top = top
+	result_button.offset_bottom = top + 400.0 * 196.0 / 768.0
+
+
+## The win screen: the title, then stars, coins and the wheel; the button to
+## continue only appears once the reward has been handed out.
+func show_win(stars: int, earned: int, seed_value: int) -> void:
+	show_overlay("VICTORY", "NEXT LEVEL", "")
+	result_button.visible = false
+	_move_result_button(360)
+	win_screen.start(stars, earned, seed_value)
 
 
 func hide_overlay() -> void:
