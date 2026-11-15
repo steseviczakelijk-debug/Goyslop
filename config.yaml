@@ -1,0 +1,32 @@
+# What the account is about. Be specific: this is the main lever on quality.
+niche: "surprising facts about everyday objects"
+tone: "fast, curious, a little dry; no hype words"
+language: "English"
+hashtags_always: ["fyp"]
+
+schedule:
+  posts_per_day: 3          # hard daily cap
+  active_hours: [9, 22]     # local hours in which posts may go out
+  jitter_minutes: 20        # random offset so posts don't land on a grid
+
+video:
+  width: 1080
+  height: 1920
+  fps: 30
+  font: "Inter"
+  words_per_second: 2.6     # caption pacing when there is no voiceover
+
+voice:
+  provider: "none"          # "none" or "elevenlabs"
+  voice_id: "21m00Tcm4TlvDq8ikWAM"
+  model_id: "eleven_multilingual_v2"
+
+tiktok:
+  # Apps that have not passed TikTok's audit can only post SELF_ONLY (private).
+  privacy_level: "SELF_ONLY"   # PUBLIC_TO_EVERYONE | MUTUAL_FOLLOW_FRIENDS | FOLLOWER_OF_CREATOR | SELF_ONLY
+  disable_comment: false
+  disable_duet: false
+  disable_stitch: false
+  redirect_uri: "http://localhost:8721/callback"
+
+model: "claude-opus-5-5"
