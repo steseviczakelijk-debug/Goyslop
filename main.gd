@@ -1,6 +1,6 @@
 extends Node3D
-## Medieval lane shooter: drag to move your knights along the castle bridge,
-## archery is automatic. Gates change squad size, orc hordes eat soldiers and
+## Medieval lane shooter: drag to move your archers along the castle bridge,
+## shooting is automatic. Gates change squad size, orc hordes eat soldiers and
 ## a troll ends each level.
 
 enum State { MENU, PLAY, WIN, LOSE }
@@ -20,13 +20,24 @@ const ENEMY_SPEED := 2.0
 const ENEMY_SPACING := 0.72
 const GATE_HITS_PER_POINT := 7
 const BOSS_R := 1.5
-const SCENERY_ROWS := 44
 const BUCKETS := 22
 const BUCKET_W := 0.5
 const SAVE_PATH := "user://save.cfg"
 
+const FLOOR_PERIOD := 2.5
+const GRASS_PERIOD := 6.0
+const RAIL_LENGTH := 2.5
+const RAIL_COUNT := 80
+const RAIL_TILT := 0.55
+const RIVER_PERIOD := 200.0
+const SCENERY_LOOP := 200.0
+const GATE_WIDTH := 3.7
+const GATE_BASE := 1.0
+const INK := Color(0.05, 0.1, 0.3)
+
 var state := State.MENU
 var level := 1
+var coins := 0
 var soldiers := 1
 var squad_x := 0.0
 var squad_r := 0.3
@@ -52,6 +63,8 @@ var b_count := 0
 
 var gates: Array = []
 var next_pair := 0
+var gate_meshes := {}
+var post_mesh: QuadMesh
 
 var boss_active := false
 var boss_hp := 0.0
@@ -66,16 +79,26 @@ var bullet_mm: MultiMesh
 var soldier_mm: MultiMesh
 var shadow_mm: MultiMesh
 var enemy_shadow_mm: MultiMesh
+var rail_mm: MultiMesh
 var blob_mat: StandardMaterial3D
-var seam_mm: MultiMesh
-var merlon_mm: MultiMesh
+var floor_mat: StandardMaterial3D
+var grass_mat: StandardMaterial3D
+var water_mat: StandardMaterial3D
+var river: MeshInstance3D
+var castle: MeshInstance3D
+var scenery: Array = []  # [MultiMesh, PackedVector2Array of (x, z0)]
+var squad_badge: MeshInstance3D
 var squad_label: Label3D
 var formation := PackedVector2Array()
 
 var level_label: Label
-var progress: ProgressBar
+var coin_label: Label
+var progress_fill: Panel
+var progress_width := 0.0
+var overlay: Control
 var msg_label: Label
 var sub_label: Label
+var button_label: Label
 
 var autoplay := false
 var auto_levels := 1
@@ -85,8 +108,9 @@ var shot_time := 6.0
 
 class Gate:
 	var node: Node3D
+	var banner: MeshInstance3D
 	var label: Label3D
-	var mat: StandardMaterial3D
+	var meshes: Dictionary
 	var x0: float
 	var x1: float
 	var z: float
@@ -99,9 +123,12 @@ class Gate:
 		return n * value if op == "mul" else n + value
 
 	func refresh() -> void:
-		var good := op == "mul" or value > 0
-		label.text = ("x%d" % value) if op == "mul" else ("%+d" % value)
-		mat.albedo_color = Color(0.15, 0.5, 1.0, 0.6) if good else Color(1.0, 0.2, 0.2, 0.6)
+		if op == "mul":
+			label.text = "x%d" % value
+			banner.mesh = meshes.purple
+		else:
+			label.text = "%+d" % value
+			banner.mesh = meshes.blue if value > 0 else meshes.red
 
 
 func _ready() -> void:
@@ -141,97 +168,29 @@ func _ready() -> void:
 
 # ---------------------------------------------------------------- setup
 
-func _mat(c: Color, emissive := false) -> StandardMaterial3D:
-	var m := StandardMaterial3D.new()
-	m.albedo_color = c
-	if c.a < 1.0:
-		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	if emissive:
-		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	return m
-
-
-func _multimesh(mesh: Mesh, count: int, shadows := true) -> MultiMesh:
-	var mm := MultiMesh.new()
-	mm.transform_format = MultiMesh.TRANSFORM_3D
-	mm.mesh = mesh
-	mm.instance_count = count
-	mm.visible_instance_count = 0
-	var inst := MultiMeshInstance3D.new()
-	inst.multimesh = mm
-	inst.custom_aabb = AABB(Vector3(-30, -5, -120), Vector3(60, 30, 160))
-	if not shadows:
-		inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(inst)
-	return mm
-
-
-func _box(size: Vector3, pos: Vector3, c: Color) -> MeshInstance3D:
-	var mesh := BoxMesh.new()
-	mesh.size = size
-	mesh.material = _mat(c)
-	var mi := MeshInstance3D.new()
-	mi.mesh = mesh
-	mi.position = pos
-	add_child(mi)
-	return mi
-
-
-func _capsule(radius: float, height: float, c: Color) -> CapsuleMesh:
-	var mesh := CapsuleMesh.new()
-	mesh.radius = radius
-	mesh.height = height
-	mesh.radial_segments = 10
-	mesh.rings = 3
-	mesh.material = _mat(c)
-	return mesh
-
-
-func _merge(parts: Array) -> ArrayMesh:
-	# parts: [PrimitiveMesh, offset, color] -> one mesh with a surface per part
-	var am := ArrayMesh.new()
-	for p in parts:
-		var arrays: Array = p[0].get_mesh_arrays()
-		var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
-		for i in verts.size():
-			verts[i] += p[1]
-		arrays[Mesh.ARRAY_VERTEX] = verts
-		am.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-		am.surface_set_material(am.get_surface_count() - 1, _mat(p[2]))
-	return am
-
-
-func _sphere(radius: float, hemisphere := false) -> SphereMesh:
-	var m := SphereMesh.new()
-	m.radius = radius
-	m.height = radius if hemisphere else radius * 2.0
-	m.is_hemisphere = hemisphere
-	m.radial_segments = 10
-	m.rings = 5
-	return m
-
-
-func _cone(radius: float, height: float) -> CylinderMesh:
-	var m := CylinderMesh.new()
-	m.top_radius = 0.0
-	m.bottom_radius = radius
-	m.height = height
-	m.radial_segments = 8
-	return m
-
-
-func _sprite_mesh(path: String, height: float) -> QuadMesh:
-	var tex: Texture2D = load(path)
+func _unshaded(tex: Texture2D) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_texture = tex
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	return m
+
+
+func _cutout(path: String) -> StandardMaterial3D:
+	var m := _unshaded(load(path))
 	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
 	m.alpha_scissor_threshold = 0.5
+	return m
+
+
+## A camera-facing sprite quad standing on the ground (or `base` above it).
+func _sprite_mesh(path: String, height: float, base := 0.0) -> QuadMesh:
+	var m := _cutout(path)
 	m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
 	m.billboard_keep_scale = true
+	var tex := m.albedo_texture
 	var quad := QuadMesh.new()
 	quad.size = Vector2(height * tex.get_width() / tex.get_height(), height)
-	quad.center_offset = Vector3(0, height * 0.5, 0)
+	quad.center_offset = Vector3(0, base + height * 0.5, 0)
 	quad.material = m
 	return quad
 
@@ -248,80 +207,130 @@ func _blob_mesh(size: float) -> PlaneMesh:
 		tex.fill_to = Vector2(1.0, 0.5)
 		tex.width = 64
 		tex.height = 64
-		blob_mat = _mat(Color(1, 1, 1, 0.99), true)
-		blob_mat.albedo_texture = tex
+		blob_mat = _unshaded(tex)
+		blob_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	var blob := PlaneMesh.new()
 	blob.size = Vector2(size, size)
 	blob.material = blob_mat
 	return blob
 
 
+func _instance(mesh: Mesh, pos := Vector3.ZERO, parent: Node = self) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	mi.mesh = mesh
+	mi.position = pos
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(mi)
+	return mi
+
+
+func _multimesh(mesh: Mesh, count: int) -> MultiMesh:
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = mesh
+	mm.instance_count = count
+	mm.visible_instance_count = 0
+	var inst := MultiMeshInstance3D.new()
+	inst.multimesh = mm
+	inst.custom_aabb = AABB(Vector3(-60, -5, -220), Vector3(120, 40, 260))
+	inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(inst)
+	return mm
+
+
+func _ground(path: String, size: Vector2, y: float, uv: Vector2) -> MeshInstance3D:
+	var mat := _unshaded(load(path))
+	mat.uv1_scale = Vector3(uv.x, uv.y, 1)
+	var plane := PlaneMesh.new()
+	plane.size = size
+	plane.material = mat
+	return _instance(plane, Vector3(0, y, 0))
+
+
 func _build_world() -> void:
 	var env := Environment.new()
 	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color(0.36, 0.66, 0.9)
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(1, 1, 1)
-	env.ambient_light_energy = 0.35
+	env.background_color = Color(0.25, 0.6, 1.0)
 	var we := WorldEnvironment.new()
 	we.environment = env
 	add_child(we)
 
-	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-55, 35, 0)
-	sun.light_energy = 0.8
-	sun.shadow_enabled = true
-	sun.directional_shadow_max_distance = 60.0
-	add_child(sun)
-
 	var cam := Camera3D.new()
 	cam.keep_aspect = Camera3D.KEEP_WIDTH
-	cam.fov = 42.0
-	cam.far = 200.0
+	cam.fov = 48.0
+	cam.far = 450.0
 	add_child(cam)
-	cam.look_at_from_position(Vector3(0, 15, 9), Vector3(0, 0, -6))
+	cam.position = Vector3(0, 8.6, 8.2)
+	cam.rotation_degrees.x = -30.0
 
-	var stone := Color(0.62, 0.6, 0.55)
-	var wall := Color(0.46, 0.45, 0.44)
-	_box(Vector3(ROAD_HALF * 2, 1, 220), Vector3(0, -0.5, -80), stone)
-	for side in [-1.0, 1.0]:
-		_box(Vector3(0.6, 1.0, 220), Vector3(side * (ROAD_HALF + 0.3), 0.1, -80), wall)
-	_box(Vector3(400, 1, 400), Vector3(0, -4, -100), Color(0.12, 0.36, 0.62))
+	# Sky backdrop rides with the camera; its painted hills sit on the horizon.
+	var sky := QuadMesh.new()
+	sky.size = Vector2(190, 285)
+	sky.material = _unshaded(load("res://assets/sky.png"))
+	_instance(sky, Vector3(0, 190.0 * tan(deg_to_rad(30.0)) + 0.37 * 285.0, -190), cam)
 
-	var seam := BoxMesh.new()
-	seam.size = Vector3(ROAD_HALF * 2, 0.02, 0.07)
-	seam.material = _mat(Color(0.45, 0.43, 0.4))
-	seam_mm = _multimesh(seam, SCENERY_ROWS)
-	seam_mm.visible_instance_count = SCENERY_ROWS
-	var merlon := BoxMesh.new()
-	merlon.size = Vector3(0.6, 0.5, 1.0)
-	merlon.material = _mat(wall)
-	merlon_mm = _multimesh(merlon, SCENERY_ROWS * 2)
-	merlon_mm.visible_instance_count = SCENERY_ROWS * 2
+	# Ground layers: grass, a river that passes under the bridge, the bridge deck.
+	var grass := _ground("res://assets/grass.png", Vector2(600, 600), -0.08, Vector2(100, 100))
+	grass.position.z = -200
+	grass_mat = grass.mesh.material
+	river = _ground("res://assets/water.png", Vector2(600, 14), -0.05, Vector2(42, 1))
+	water_mat = river.mesh.material
+	var deck := _ground("res://assets/bridge_floor.png", Vector2(ROAD_HALF * 2, 240), 0.0, Vector2(2, 240.0 / FLOOR_PERIOD))
+	deck.position.z = -100
+	floor_mat = deck.mesh.material
+
+	# Railings: flat sprites along the road, leaning outward so the camera sees them.
+	var rail_mat := _cutout("res://assets/railing.png")
+	rail_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var rail_tex := rail_mat.albedo_texture
+	var rail := QuadMesh.new()
+	var rail_h := RAIL_LENGTH * rail_tex.get_height() / rail_tex.get_width()
+	rail.size = Vector2(RAIL_LENGTH, rail_h)
+	rail.center_offset = Vector3(0, rail_h * 0.5, 0)
+	rail.material = rail_mat
+	rail_mm = _multimesh(rail, RAIL_COUNT * 2)
+	rail_mm.visible_instance_count = RAIL_COUNT * 2
+
+	# Roadside scenery loops forever as the level scrolls.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 4242
+	_scatter("res://assets/pine.png", 5.5, 26, 7.5, 34.0, rng)
+	_scatter("res://assets/bush.png", 1.4, 18, 5.8, 26.0, rng)
+	_scatter("res://assets/rock.png", 1.3, 12, 5.8, 22.0, rng)
+	var poles := PackedVector2Array()
+	for i in int(SCENERY_LOOP / 20.0):
+		poles.append(Vector2(-5.4, i * 20.0))
+		poles.append(Vector2(5.4, i * 20.0))
+	var pole_mm := _multimesh(_sprite_mesh("res://assets/banner_pole.png", 4.2), poles.size())
+	pole_mm.visible_instance_count = poles.size()
+	scenery.append([pole_mm, poles])
+
+	castle = _instance(_sprite_mesh("res://assets/castle.png", 13.0))
 
 	# Units are camera-facing sprites with a soft blob shadow underneath.
-	enemy_shadow_mm = _multimesh(_blob_mesh(0.8), MAX_ENEMIES, false)
-	shadow_mm = _multimesh(_blob_mesh(0.75), MAX_SHOWN, false)
-	enemy_mm = _multimesh(_sprite_mesh("res://assets/orc.png", 1.25), MAX_ENEMIES, false)
-	soldier_mm = _multimesh(_sprite_mesh("res://assets/archer.png", 1.35), MAX_SHOWN, false)
-	var bullet := BoxMesh.new()
-	bullet.size = Vector3(0.07, 0.07, 1.0)
-	bullet.material = _mat(Color(1.0, 0.9, 0.55), true)
-	bullet_mm = _multimesh(bullet, MAX_BULLETS)
+	enemy_shadow_mm = _multimesh(_blob_mesh(0.8), MAX_ENEMIES)
+	shadow_mm = _multimesh(_blob_mesh(0.75), MAX_SHOWN)
+	enemy_mm = _multimesh(_sprite_mesh("res://assets/orc.png", 1.25), MAX_ENEMIES)
+	soldier_mm = _multimesh(_sprite_mesh("res://assets/archer.png", 1.35), MAX_SHOWN)
+	bullet_mm = _multimesh(_sprite_mesh("res://assets/arrow.png", 1.7, 0.3), MAX_BULLETS)
 
-	squad_label = _label3d(72)
+	var gate_h := GATE_WIDTH * 295.0 / 512.0
+	for c in ["blue", "red", "purple"]:
+		gate_meshes[c] = _sprite_mesh("res://assets/gate_%s.png" % c, gate_h, GATE_BASE)
+	post_mesh = _sprite_mesh("res://assets/gate_post.png", GATE_BASE + gate_h + 0.25)
+
+	var badge := _sprite_mesh("res://assets/ui_badge.png", 1.15)
+	badge.center_offset = Vector3.ZERO
+	badge.material.no_depth_test = true
+	badge.material.render_priority = 1
+	squad_badge = _instance(badge)
+	squad_label = _label3d(64)
+	squad_label.render_priority = 2
 	add_child(squad_label)
 
 	boss_node = Node3D.new()
-	var body := MeshInstance3D.new()
-	body.mesh = _sprite_mesh("res://assets/troll.png", 5.6)
-	body.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	boss_node.add_child(body)
-	var boss_shadow := MeshInstance3D.new()
-	boss_shadow.mesh = _blob_mesh(5.0)
-	boss_shadow.position.y = 0.04
-	boss_shadow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	boss_node.add_child(boss_shadow)
+	_instance(_blob_mesh(5.0), Vector3(0, 0.04, 0), boss_node)
+	_instance(_sprite_mesh("res://assets/troll.png", 5.6), Vector3.ZERO, boss_node)
 	boss_label = _label3d(110)
 	boss_label.position.y = 6.4
 	boss_node.add_child(boss_label)
@@ -329,25 +338,58 @@ func _build_world() -> void:
 	add_child(boss_node)
 
 
+func _scatter(path: String, height: float, count: int, near: float, far: float, rng: RandomNumberGenerator) -> void:
+	var spots := PackedVector2Array()
+	for i in count:
+		var side := -1.0 if i % 2 == 0 else 1.0
+		spots.append(Vector2(side * rng.randf_range(near, far), rng.randf_range(0.0, SCENERY_LOOP)))
+	var mm := _multimesh(_sprite_mesh(path, height), count)
+	mm.visible_instance_count = count
+	scenery.append([mm, spots])
+
+
 func _label3d(size: int) -> Label3D:
 	var l := Label3D.new()
 	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	l.font_size = size
 	l.outline_size = size / 4
+	l.outline_modulate = INK
 	l.no_depth_test = true
 	l.pixel_size = 0.009
 	return l
 
 
-func _hud_label(parent: Control, size: int) -> Label:
+func _hud_label(parent: Control, size: int, color := Color.WHITE, outline := true) -> Label:
 	var l := Label.new()
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	l.add_theme_font_size_override("font_size", size)
-	l.add_theme_constant_override("outline_size", size / 5)
-	l.add_theme_color_override("font_outline_color", Color(0.05, 0.1, 0.3))
+	l.add_theme_color_override("font_color", color)
+	if outline:
+		l.add_theme_constant_override("outline_size", size / 5)
+		l.add_theme_color_override("font_outline_color", INK)
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	parent.add_child(l)
 	return l
+
+
+## A HUD image centred horizontally, `width` wide, with its top at `top`.
+func _hud_image(parent: Control, path: String, width: float, top: float) -> TextureRect:
+	var tex: Texture2D = load(path)
+	var t := TextureRect.new()
+	t.texture = tex
+	t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	t.stretch_mode = TextureRect.STRETCH_SCALE
+	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(t)
+	var h := width * tex.get_height() / tex.get_width()
+	t.anchor_left = 0.5
+	t.anchor_right = 0.5
+	t.offset_left = -width * 0.5
+	t.offset_right = width * 0.5
+	t.offset_top = top
+	t.offset_bottom = top + h
+	return t
 
 
 func _build_hud() -> void:
@@ -358,29 +400,60 @@ func _build_hud() -> void:
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(root)
 
-	level_label = _hud_label(root, 44)
-	level_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	level_label.offset_top = 70
+	var banner := _hud_image(root, "res://assets/ui_level_banner.png", 520, 56)
+	level_label = _hud_label(banner, 44, Color(0.36, 0.2, 0.08), false)
+	level_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
-	progress = ProgressBar.new()
-	progress.show_percentage = false
-	progress.max_value = 1.0
-	progress.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(progress)
-	progress.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	progress.offset_left = 140
-	progress.offset_right = -140
-	progress.offset_top = 140
-	progress.offset_bottom = 164
+	var bar := _hud_image(root, "res://assets/ui_progress_bar.png", 400, 176)
+	var bar_h := bar.offset_bottom - bar.offset_top
+	progress_width = 400 * 0.93
+	progress_fill = Panel.new()
+	var fill_style := StyleBoxFlat.new()
+	fill_style.bg_color = Color(0.25, 0.8, 1.0)
+	fill_style.set_corner_radius_all(int(bar_h * 0.3))
+	progress_fill.add_theme_stylebox_override("panel", fill_style)
+	progress_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bar.add_child(progress_fill)
+	progress_fill.position = Vector2(400 * 0.035, bar_h * 0.22)
+	progress_fill.size = Vector2(0, bar_h * 0.56)
+	var icon := _hud_image(bar, "res://assets/ui_castle_icon.png", 62, bar_h * 0.5 - 34)
+	icon.offset_left = 200 - 40
+	icon.offset_right = 200 + 22
 
-	msg_label = _hud_label(root, 96)
+	var coin := _hud_image(root, "res://assets/coin.png", 46, 250)
+	coin.anchor_left = 0.0
+	coin.anchor_right = 0.0
+	coin.offset_left = 28
+	coin.offset_right = 74
+	coin_label = _hud_label(root, 36)
+	coin_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	coin_label.position = Vector2(84, 248)
+	coin_label.size = Vector2(300, 50)
+
+	overlay = Control.new()
+	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(overlay)
+	msg_label = _hud_label(overlay, 100)
 	msg_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	msg_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	msg_label.offset_bottom = -360
-	sub_label = _hud_label(root, 40)
+	msg_label.offset_bottom = -420
+	var button := _hud_image(overlay, "res://assets/ui_button.png", 400, 0)
+	button.anchor_top = 0.5
+	button.anchor_bottom = 0.5
+	button.offset_top = -110
+	button.offset_bottom = -110 + 400.0 * 196.0 / 768.0
+	button_label = _hud_label(button, 46)
+	button_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	sub_label = _hud_label(overlay, 34)
 	sub_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	sub_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	sub_label.offset_bottom = -140
+	sub_label.offset_top = 110
+
+
+func _show_overlay(title: String, button: String, sub: String) -> void:
+	overlay.visible = true
+	msg_label.text = title
+	button_label.text = button
+	sub_label.text = sub
 
 
 # ---------------------------------------------------------------- level
@@ -445,14 +518,12 @@ func _reset_level() -> void:
 	_gen_level(level)
 	state = State.MENU
 	level_label.text = "LEVEL %d" % level
-	msg_label.text = "TAP TO START"
-	sub_label.text = "Drag to move your knights"
+	_show_overlay("", "PLAY", "Drag to move your archers")
 
 
 func _start() -> void:
 	state = State.PLAY
-	msg_label.text = ""
-	sub_label.text = ""
+	overlay.visible = false
 
 
 func _spawn(ev: Dictionary) -> void:
@@ -489,21 +560,18 @@ func _spawn_gate(def: Dictionary, x0: float, x1: float, z: float) -> void:
 	g.op = def.op
 	g.value = def.value
 	g.pair = next_pair
+	g.meshes = gate_meshes
 	g.node = Node3D.new()
-	var mesh := BoxMesh.new()
-	mesh.size = Vector3(x1 - x0 - 0.2, 2.6, 0.15)
-	g.mat = _mat(Color(0, 0, 1, 0.6))
-	mesh.material = g.mat
-	var mi := MeshInstance3D.new()
-	mi.mesh = mesh
-	mi.position.y = 1.3
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	g.node.add_child(mi)
-	g.label = _label3d(150)
-	g.label.position = Vector3(0, 1.5, 0.2)
-	g.node.add_child(g.label)
 	g.node.position = Vector3((x0 + x1) * 0.5, 0, z)
 	add_child(g.node)
+	g.banner = _instance(gate_meshes.blue, Vector3.ZERO, g.node)
+	var half := (x1 - x0) * 0.5
+	_instance(post_mesh, Vector3(-half, 0, 0.05), g.node)
+	if x1 >= ROAD_HALF:
+		_instance(post_mesh, Vector3(half, 0, 0.05), g.node)
+	g.label = _label3d(120)
+	g.label.position = Vector3(0, GATE_BASE + 1.2, 0.1)
+	g.node.add_child(g.label)
 	g.refresh()
 	gates.append(g)
 
@@ -642,7 +710,9 @@ func _update_enemies(dt: float) -> void:
 	var i := 0
 	while i < e_count:
 		var remove := e_hp[i] <= 0.0
-		if not remove:
+		if remove:
+			coins += 1
+		else:
 			var z := e_z[i] + dz
 			var x := e_x[i]
 			if z > -16.0:
@@ -688,6 +758,7 @@ func _update_boss(dt: float) -> void:
 	if boss_hp <= 0.0:
 		boss_active = false
 		boss_node.visible = false
+		coins += 50
 		_finish(true)
 	elif boss_z > -squad_r - BOSS_R:
 		soldiers = 0
@@ -696,14 +767,16 @@ func _update_boss(dt: float) -> void:
 func _finish(win: bool) -> void:
 	state = State.WIN if win else State.LOSE
 	b_count = 0
-	msg_label.text = "VICTORY" if win else "DEFEAT"
-	sub_label.text = "Tap for next level" if win else "Tap to retry"
+	if win:
+		_show_overlay("VICTORY", "NEXT LEVEL", "")
+	else:
+		_show_overlay("DEFEAT", "RETRY", "")
 	if autoplay:
 		print("RESULT level=%d win=%s soldiers=%d progress=%.2f" % [level, win, soldiers, distance / level_length])
 	if win:
 		level += 1
-		if not autoplay:
-			_save()
+	if not autoplay:
+		_save()
 	if autoplay and shot_path == "":
 		auto_levels -= 1
 		if auto_levels <= 0:
@@ -727,7 +800,7 @@ func _render() -> void:
 
 	bullet_mm.visible_instance_count = b_count
 	for i in b_count:
-		t.origin = Vector3(b_x[i], 0.7, b_z[i])
+		t.origin = Vector3(b_x[i], 0.0, b_z[i])
 		bullet_mm.set_instance_transform(i, t)
 
 	var shown := mini(soldiers, MAX_SHOWN)
@@ -739,23 +812,43 @@ func _render() -> void:
 		soldier_mm.set_instance_transform(i, t)
 		t.origin.y = 0.03
 		shadow_mm.set_instance_transform(i, t)
-	squad_label.text = str(soldiers)
-	squad_label.position = Vector3(squad_x, 2.4, -squad_r - 0.3)
+	var count_text := str(soldiers)
+	squad_label.text = count_text
+	squad_label.pixel_size = 0.009 * minf(1.0, 2.6 / count_text.length())
+	squad_label.position = Vector3(squad_x, 2.3, -squad_r - 0.3)
+	squad_badge.position = squad_label.position
 
-	var off := fmod(distance, 2.5)
-	for i in SCENERY_ROWS:
-		var z := 12.0 - i * 2.5 + off
-		t.origin = Vector3(0, 0.01, z)
-		seam_mm.set_instance_transform(i, t)
-		t.origin = Vector3(-ROAD_HALF - 0.3, 0.85, z)
-		merlon_mm.set_instance_transform(i * 2, t)
-		t.origin.x = ROAD_HALF + 0.3
-		merlon_mm.set_instance_transform(i * 2 + 1, t)
+	# Scrolling ground: slide the textures instead of moving geometry.
+	floor_mat.uv1_offset.y = -fposmod(distance / FLOOR_PERIOD, 1.0)
+	grass_mat.uv1_offset.y = -fposmod(distance / GRASS_PERIOD, 1.0)
+	water_mat.uv1_offset.x = fposmod(time * 0.03, 1.0)
+	river.position.z = fposmod(distance + 70.0, RIVER_PERIOD) - 170.0
+
+	var off := fmod(distance, RAIL_LENGTH)
+	var lean_x := sin(RAIL_TILT)
+	var lean_y := cos(RAIL_TILT)
+	var left := Basis(Vector3(0, 0, 1), Vector3(-lean_x, lean_y, 0), Vector3(-lean_y, -lean_x, 0))
+	var right := Basis(Vector3(0, 0, 1), Vector3(lean_x, lean_y, 0), Vector3(-lean_y, lean_x, 0))
+	for i in RAIL_COUNT:
+		var z := 14.0 - i * RAIL_LENGTH + off
+		rail_mm.set_instance_transform(i * 2, Transform3D(left, Vector3(-ROAD_HALF, 0, z)))
+		rail_mm.set_instance_transform(i * 2 + 1, Transform3D(right, Vector3(ROAD_HALF, 0, z)))
+
+	for entry in scenery:
+		var mm: MultiMesh = entry[0]
+		var spots: PackedVector2Array = entry[1]
+		for i in spots.size():
+			t.origin = Vector3(spots[i].x, 0, fposmod(spots[i].y + distance, SCENERY_LOOP) - SCENERY_LOOP + 20.0)
+			mm.set_instance_transform(i, t)
+
+	castle.position.z = -(level_length + 30.0 - distance)
+	castle.visible = castle.position.z > -190.0
 
 	if boss_active:
 		boss_node.position = Vector3(boss_x, 0, boss_z)
 		boss_label.text = str(int(ceilf(boss_hp)))
-	progress.value = clampf(distance / level_length, 0.0, 1.0)
+	progress_fill.size.x = progress_width * clampf(distance / level_length, 0.0, 1.0)
+	coin_label.text = str(coins)
 
 
 # ---------------------------------------------------------------- persistence
@@ -763,6 +856,7 @@ func _render() -> void:
 func _save() -> void:
 	var cfg := ConfigFile.new()
 	cfg.set_value("progress", "level", level)
+	cfg.set_value("progress", "coins", coins)
 	cfg.save(SAVE_PATH)
 
 
@@ -770,6 +864,7 @@ func _load() -> void:
 	var cfg := ConfigFile.new()
 	if cfg.load(SAVE_PATH) == OK:
 		level = maxi(1, int(cfg.get_value("progress", "level", 1)))
+		coins = maxi(0, int(cfg.get_value("progress", "coins", 0)))
 
 
 # ---------------------------------------------------------------- test bot

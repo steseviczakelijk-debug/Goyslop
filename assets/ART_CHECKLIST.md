@@ -3,35 +3,38 @@
 Alle sprites: transparante PNG, zelfde stijl en camerahoek als `archer.png`
 (ongeveer 45 graden van boven). Getallen en teksten komen uit de code.
 
+Originelen staan in `assets/raw/`; `python3 tools/process_art.py` maakt daar de
+spelklare bestanden in `assets/` van.
+
 ## Ronde 1 – speelveld
 - [x] 1. Boogschutter (van achteren) – `archer.png`
 - [x] 2. Ork, gewone vijand (van voren) – `orc.png`
 - [x] 3. Trol, eindbaas (van voren) – `troll.png`
-- [x] 4. Pluspoort: blauw banier, zonder getal – ontvangen, nog niet verwerkt
-- [ ] 5. Minpoort: rood banier, zonder getal
-- [ ] 6. Vermenigvuldigpoort: gouden banier, zonder getal
-- [x] 7. Poortpaal (hout met gouden knop) – ontvangen, nog niet verwerkt
-- [x] 8. Pijl – ontvangen, nog niet verwerkt
-- [x] 9. Brugdek: stenen tegels – ontvangen, nog niet verwerkt (naden bijwerken)
-- [x] 10. Brugleuning: houten segment – ontvangen, nog niet verwerkt (rode randpixels wegpoetsen)
+- [x] 4. Pluspoort: blauw banier, zonder getal
+- [x] 5. Minpoort: rood banier (omgekleurd uit nummer 4)
+- [x] 6. Vermenigvuldigpoort: paars banier (omgekleurd uit nummer 4; goud viel weg tegen de gouden rand)
+- [x] 7. Poortpaal (hout met gouden knop)
+- [x] 8. Pijl
+- [x] 9. Brugdek: stenen tegels
+- [x] 10. Brugleuning: houten segment
 
 ## Ronde 2 – omgeving
-- [x] 11. Gras – ontvangen, nog niet verwerkt
-- [x] 12. Water – ontvangen, nog niet verwerkt
-- [x] 13. Dennenboom – ontvangen, nog niet verwerkt
-- [x] 14. Struik – ontvangen, nog niet verwerkt
-- [x] 15. Rots – ontvangen, nog niet verwerkt
-- [x] 16. Banier op paal – ontvangen, nog niet verwerkt
-- [x] 17. Kasteel – ontvangen, nog niet verwerkt
-- [x] 18. Lucht met wolken – ontvangen, nog niet verwerkt
+- [x] 11. Gras
+- [x] 12. Water
+- [x] 13. Dennenboom
+- [x] 14. Struik
+- [x] 15. Rots
+- [x] 16. Banier op paal
+- [x] 17. Kasteel
+- [x] 18. Lucht met wolken
 
 ## Ronde 3 – interface
-- [x] 19. Levelbanner – ontvangen, nog niet verwerkt
-- [x] 20. Voortgangsbalk (20a) en kasteel-icoon (20b) – ontvangen, nog niet verwerkt
-- [x] 21. Tellerschildje – ontvangen, nog niet verwerkt
-- [x] 22. Knop – ontvangen, nog niet verwerkt
-- [x] 23. Munt – ontvangen, nog niet verwerkt
-- [ ] 24. App-icoon
+- [x] 19. Levelbanner
+- [x] 20. Voortgangsbalk (20a) en kasteel-icoon (20b)
+- [x] 21. Tellerschildje
+- [x] 22. Knop
+- [x] 23. Munt
+- [x] 24. App-icoon
 
 ## Ronde 4 – later
 - [ ] 25. Sterke vijand (gepantserde ork)
