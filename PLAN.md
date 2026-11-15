@@ -1,125 +1,82 @@
-# Plan: van prototype naar uitgeefbare game
+# Masterplan Bowbridge: Archer Legion
 
-Keuzes van de maker: commerciële poging, 2D-sprites, eerst het spel zelf (beeld,
-spelregels, geluid), progressie daarna, verdienmodel als laatste.
-Aanname: 8–10 uur per week van de maker; code wordt door een AI-assistent geschreven.
+Doel: een spel dat je niet weg wilt leggen. Eerst het spel eerlijk maken, dan de
+beloningen erbovenop. Alles met gratis munten en advertenties; geen betaalde
+gokelementen, geen misleiding, niet gericht op kinderen onder de 13.
 
-## Fase 0 – Fundament (1 week)
-Eindresultaat: het spel draait op een goedkope Android-telefoon op 60 beelden per
-seconde met een zichtbare fps-teller, en de code is opgedeeld.
-1. [x] Meten op een echte telefoon: goede fps op een Galaxy S26 Ultra. Een goedkoop
-   toestel is nog niet gemeten.
-2. [x] main.gd opgedeeld: simulatie, levelgenerator, weergave, interface, opslag, bot.
-3. [x] Alle balansgetallen in scripts/balance.gd.
-4. [x] Nieuwe naam: Bowbridge: Archer Legion, pakketnaam com.bowbridge.game.
+Werkafspraak: er wordt alleen gebouwd waar uitdrukkelijk akkoord op is gegeven,
+per stap. Voor alles wat een plaatje is eerst prompts; beweging gaat in code.
 
-## Fase 1 – Spelgevoel (2–3 weken)
-Eindresultaat: elke gebeurtenis geeft beeld én geluid; tien seconden opname zonder
-uitleg ziet eruit als een levend spel.
-1. [x] Treffers: witte flits op de ork, geluid.
-2. [x] Dood van een ork: valt achterover met een eigen pose, rookwolkje, munt.
-3. [x] Poorten: getal veert op bij groei, deeltjes en geluid bij doorlopen, nieuwe
-   boogschutters "ploppen" erin, verliezen als rood getal en rode wolkjes.
-4. [x] Schieten: terugslag per boogschutter, pijlen met boog en spoor.
-5. [x] Lopen: orks wisselen tussen twee poses en wiegen; boogschutters tonen een
-   aparte pose na het schot. De generator hield de figuren consistent, dus
-   pose-animatie via bewerkte afbeeldingen werkt.
-6. [x] Trol: loopt met twee poses, stampt met camerabeweging, licht op, heeft een
-   levensbalk en spat uiteen. Hij haalt uit met een eigen pose (knots omhoog, dan op
-   de grond); de klap kost 35 procent van je leger en is te ontwijken. De rode
-   waarschuwingsvlek op de grond is nog in code getekend.
-7. [x] Camera: schok bij verlies en baas. [ ] Inzoomen bij winst.
-8. [x] Trillen bij poort, verlies, stamp en winst.
-9. [x] Geluid: dertien effecten en één muziekstuk, allemaal gesynthetiseerd als
-   tijdelijke vulling (tools/make_sounds.py). [ ] Vervangen door opgenomen geluid;
-   [ ] apart muziekstuk voor de baas.
-10. [x] Winst: confetti, juichend leger, vertraging bij de laatste klap.
-    [x] Munten vliegen naar de teller. [ ] Munten die optellen op het winstscherm.
-11. [x] Menu met pauze, volume voor muziek en geluid, trillen aan/uit, level
-    opnieuw; de terugknop van Android en het verlaten van de app openen het menu.
-12. [x] Levendiger: boogschutters volgen met vertraging, orks verschillen in
-    grootte en tempo en lopen niet meer in een strak raster.
+## Stap 1 – Eerlijk spel (gedaan)
+Goed spelen wordt beloond en verliezen is mogelijk.
+- [x] Trol heeft vaste levens per level; een groot leger wint sneller.
+- [x] Poorten groeien door schieten tot een maximum (de helft van hun waarde
+      erbij, minstens 3).
+- [x] Drie testbots (slecht, gemiddeld, perfect) en een meetscript:
+      `godot --headless -s scripts/bench.gd -- --bot=avg --levels=1-14 --runs=20`
+- [x] Balans afgesteld. Gemeten over level 1–14, 20 keer per level:
+      perfect 280/280, gemiddeld 211/280 (75%), slecht 42/280 (15%, waarvan
+      16/20 op level 1). Baasgevecht: perfect ongeveer 7 s, gemiddeld 11 s.
+- [x] Level 1 en 2 zijn leerlevels: kleinere golven en geen poorten die
+      soldaten afnemen.
 
-## Fase 2 – Kernspel en balans (3–4 weken)
-Eindresultaat: tien levels die verschillend aanvoelen; een gemiddelde testbot wint
-60–80 procent, een slechte verliest, een perfecte wint altijd.
-1. Baas herstellen: levens volgen uit het level, niet uit je leger; een groot leger
-   wint sneller en levert een hogere eindbonus op.
-2. Poorten begrenzen: groei door schieten krijgt een maximum per poort.
-3. Testbots met drie vaardigheidsniveaus; elke wijziging wordt daartegen gemeten.
-4. Levelgenerator bouwen uit handgemaakte bouwstenen met een spanningsboog.
-5. [x] Gepantserde ork: drie keer zo sterk, vanaf level 3, drie munten; aan het
-   leger haalt hij eerst uit en neemt dan drie soldaten mee, tenzij je hem voor de
-   klap neerschiet. [ ] Snelle renner, grote bruut.
-6. Obstakels en beloningen: ton met teller, stekelval, poorten voor vuursnelheid en
-   schade.
-7. Twee extra bazen met een eigen aanvalspatroon.
-8. Moeilijkheidscurve met rustlevels en eerlijk verlies (zien aankomen, bijna gehaald).
-9. Tweede omgeving om afwisseling te tonen.
+## Stap 2 – Winstmoment
+Elke overwinning voelt als een prijs.
+- Sterren naar legergrootte; munten die één voor één optellen met oplopende toon;
+  een rad na de baas dat de beloning vermenigvuldigt (x1 tot x5); de knop
+  "volgende level" verschijnt pas na het feest.
+- Art: sterren, rad met wijzer, lichtstralen voor het winstscherm.
+- Geslaagd als het winstscherm 5–8 seconden duurt en je er niet doorheen tikt.
 
-## Fase 3 – Eerste minuut en interface (1–2 weken)
-Eindresultaat: iemand die het spel nooit zag, speelt level 1 tot en met 3 zonder
-uitleg en zonder vast te lopen.
-1. Wijzend handje en een eerste level dat slepen en poorten vanzelf aanleert.
-2. Pauze, en netjes hervatten na een telefoontje of app-wissel.
-3. Instellingen: geluid, muziek, trillen.
-4. Resultaatscherm met beloningsmoment; eigen lettertype; alle schermformaten en
-   inkepingen.
-5. Teksten uit de code halen (Engels en Nederlands).
+## Stap 3 – Verrassingen
+Tijdens het level gebeurt iets onverwachts.
+- Gouden ork (zeldzaam, muntenregen); schatkist met willekeurige inhoud; ton met
+  teller; af en toe een jackpot-poort.
+- Art: gouden ork (drie poses), kapotte ton, schatkist, jackpot-banier. De ton
+  zelf is binnen.
+- Geslaagd als elk level minstens één ding heeft dat het vorige niet had.
 
-## Fase 4 – Meten en gesloten test (2 weken werk, 2 weken wachten)
-Eindresultaat: een ondertekende release in een gesloten Play Store-test, met cijfers.
-1. Analytics: level gestart, gehaald, verloren en waar; sessieduur; terugkeer.
-2. Foutrapportage, opslag met versienummer.
-3. Play Console-account, release-sleutel, privacybeleid, inhoudsclassificatie 13+.
-4. Gesloten test: 12 testers gedurende 14 dagen (verplicht voor nieuwe accounts).
-5. Winkelpagina: icoon, schermafbeeldingen, korte video.
-Streefwaarden: 35 procent komt na één dag terug, 10 procent na zeven dagen, meer dan
-80 procent haalt elk van de eerste vijf levels.
+## Stap 4 – Reeksen
+Doorspelen loont.
+- Combo-teller bij snel achter elkaar gedode orks, met steeds hoger geluid en een
+  bonus; winstreeks over levels met een groeiende vermenigvuldiger.
+- Art: combo-badge, vlam-icoon.
 
-## Fase 5 – Verkoopbaarheid testen (1 week, klein budget)
-Eindresultaat: bekend wat één installatie via advertenties kost.
-Drie korte video's van het spel als advertentie draaien met 50–100 euro. Dit cijfer
-bepaalt of doorinvesteren zin heeft en is wat uitgevers als eerste vragen.
+## Stap 5 – Vooruitgang
+Altijd iets dat bijna af is.
+- Upgrades voor munten (startleger, schade, vuursnelheid, muntenbonus); kaart met
+  werelden; balk naar de volgende beloning; vrij te spelen skins.
+- Art: upgrade-iconen, kaart, tweede wereld, twee of drie skins.
 
-## Fase 6 – Progressie (na de cijfers)
-Upgrades voor munten (startleger, schade, vuursnelheid), dagelijkse beloning, nieuwe
-werelden. Bewust uitgesteld: zonder leuk kernspel houdt progressie niemand vast.
+## Stap 6 – Terugkomen
+Een reden om morgen weer te openen.
+- Dagelijkse beloning die oploopt over zeven dagen; kist die na vier uur opengaat;
+  melding als hij klaar is (alleen met toestemming).
+- Art: kalender met zeven vakjes, kist dicht en open.
 
-## Fase 7 – Verdienmodel en soft launch
-Beloningsvideo's (dubbele munten, doorgaan na verlies), schermvullende advertenties
-tussen levels vanaf level 3, aankoop "geen advertenties". Soft launch in enkele
-landen, daarna opschalen of naar een uitgever met de cijfers.
+## Stap 7 – Verlies ombuigen
+Verlies leidt tot "nog één keer".
+- Verliesscherm dat toont hoe dichtbij je was (altijd het echte getal); "doorgaan
+  met je leger" en "dubbele beloning" via een advertentie; "opnieuw" als grootste
+  knop.
+- Nodig: AdMob-account, advertentie-icoon.
 
-## Art en animatie
-- Animatie eerst in code (wiegen, rekken, terugslag, flits); dat werkt met de
-  bestaande sprites.
-- Extra frames alleen waar code niet volstaat. Eerst één proef (ork, twee frames)
-  om te zien of de generator het figuur consistent houdt.
-- De leuning is een lage stenen muur van echte 3D-vlakken met eigen texturen.
-- Geen water langs de hele brug (afgewezen); de rivier kruist alleen af en toe.
-- Werkafspraak: alleen aanpassen waar uitdrukkelijk akkoord op is gegeven.
-- Lettertype: Lilita One (Open Font License, licentie in assets/fonts/OFL.txt).
-- Werkwijze: voor alles wat een plaatje is eerst prompts vragen; beweging in code.
-- Per nieuwe sprite dezelfde stijlprompt en dezelfde referentie-afbeelding.
+## Stap 8 – Meten en bijstellen
+- Meten: op welk level mensen afhaken, sessieduur, terugkeer na 1 en 7 dagen,
+  gebruik van rad en advertenties.
+- Nodig: 12 testers voor de gesloten Play Store-test, privacybeleid.
+- Streefwaarden: 35% terug na één dag, 10% na zeven dagen.
 
-## Juridisch (geen juridisch advies)
-- Op volledig door AI gemaakte afbeeldingen rust in veel landen weinig of geen
-  auteursrecht: anderen kunnen ze mogelijk kopiëren. Controleer de voorwaarden van
-  de generator op commercieel gebruik en bewaar prompts en originelen.
-- De spelvorm is vrij; namen, figuren, art en muziek van bestaande games niet.
-- Naam controleren op bestaande merken. Licenties van geluid, lettertype en Godot
-  vermelden.
+## Stand van het spel
+- Godot 4.5, Android, portret. Code opgedeeld in scripts/ (zie README).
+- Inhoud: boogschutters (vier poses plus vallen), orks, gepantserde orks vanaf
+  level 3 (vijf poses), trol met loop, uithaal, klap en ineenkrimpen.
+- Effecten, geluid (gesynthetiseerd, tijdelijk), trillen, menu met instellingen.
+- Lettertype Lilita One (Open Font License, assets/fonts/OFL.txt).
+- Afgewezen: water langs de hele brug.
+- Open beslissingen van de maker: lettertype, verborgen fps-teller en iets doffer
+  gras zijn zonder akkoord ingebouwd; blijven of terug.
 
-## Bewust niet in dit plan
-3D-modellen, iPhone-versie, helden en kaarten, online functies, meer dan twee talen.
-
-## Risico's en vroege signalen
-1. Het spel verveelt na vijf levels: na fase 2 vijf onbekenden laten spelen en
-   zwijgend toekijken.
-2. Installaties zijn te duur: daarom fase 5 vóór progressie en verdienmodel.
-3. AI-sprites blijven niet consistent over frames: de proef aan het begin van fase 1.
-4. Haperen op goedkope telefoons: meten in fase 0, daarna bij elke fase opnieuw.
-5. Het werk dijt uit: elke fase stopt bij zijn eindresultaat, extra ideeën gaan op
-   een lijst.
-6. Twaalf testers vinden kost tijd: tijdens fase 2 al beginnen met werven.
+## Later (buiten dit plan)
+Release-ondertekening en Play Store-pagina, echte geluiden in plaats van
+gesynthetiseerde, iPhone-versie, meer talen.

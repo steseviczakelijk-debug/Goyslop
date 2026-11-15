@@ -16,6 +16,7 @@ class Gate:
 	var z: float
 	var op: String
 	var value: int
+	var cap: int   # shooting cannot raise the value beyond this
 	var hits := 0
 	var pair: int
 
@@ -161,8 +162,8 @@ func _spawn(ev: Dictionary) -> void:
 				e_count += 1
 		"boss":
 			boss_active = true
-			# Never let an oversized army delete the boss instantly.
-			boss_hp = maxf(ev.hp, soldiers * B.BOSS_HP_PER_SOLDIER)
+			# His health depends on the level alone, so a bigger army wins faster.
+			boss_hp = ev.hp
 			boss_max = boss_hp
 			boss_x = 0.0
 			boss_z = z
@@ -179,6 +180,7 @@ func _spawn_gate(def: Dictionary, x0: float, x1: float, z: float) -> void:
 	g.z = z
 	g.op = def.op
 	g.value = def.value
+	g.cap = def.value + maxi(B.GATE_GROW_MIN, int(round(absf(def.value) * B.GATE_GROW_SHARE)))
 	g.pair = next_pair
 	gates.append(g)
 
@@ -244,7 +246,7 @@ func _update_bullets(dt: float) -> void:
 		for g in gates:
 			if g.op == "add" and g.z <= z_old and g.z >= z_new and x >= g.x0 and x < g.x1:
 				g.hits += 1
-				if g.hits % B.GATE_HITS_PER_POINT == 0:
+				if g.hits % B.GATE_HITS_PER_POINT == 0 and g.value < g.cap:
 					g.value += 1
 					fx.append(["grow", g.id])
 				dmg = 0.0

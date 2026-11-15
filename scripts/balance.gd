@@ -41,13 +41,14 @@ const ARMORED_STRIKE := 0.18     # the last part of that, axe coming down
 
 # Gates
 const GATE_HITS_PER_POINT := 7
+const GATE_GROW_SHARE := 0.5   # shooting can raise a gate by this part of its value
+const GATE_GROW_MIN := 3       # ... but always by at least this much
 
 # Boss
 const BOSS_R := 1.5
 const BOSS_SPEED := 1.8
 const BOSS_STEER := 1.0
 const BOSS_STOP_DISTANCE := 22.0
-const BOSS_HP_PER_SOLDIER := 30.0
 const BOSS_REACH := 3.4          # how far in front of himself the mace lands
 const BOSS_WINDUP := 0.9         # seconds of warning before the smash
 const BOSS_RECOVER := 0.7        # seconds before he raises the mace again
@@ -65,7 +66,9 @@ const SEGMENT_GAP := 16.0
 const BASE_SEGMENTS := 5
 const MAX_SEGMENTS := 12
 const GROWTH_PER_LEVEL := 0.05
-const WAVE_MIN := 2.5          # wave size as a multiple of the expected army
-const WAVE_MAX := 4.0
+const GROWTH_MAX := 1.2
+const EARLY_EASE := [0.55, 0.75]   # levels 1 and 2 are gentler, to learn the game
+const WAVE_MIN := 1.8          # wave size as a multiple of the expected army
+const WAVE_MAX := 2.8
 const WAVE_CAP := 350
-const BOSS_HP_FACTOR := 25.0
+const BOSS_HP_FACTOR := 38.0

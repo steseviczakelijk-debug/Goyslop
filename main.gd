@@ -41,6 +41,7 @@ var shot_menu := false
 var tap_test := false
 var boss_test := false
 var idle_bot := false  # test runs: let the squad stand still
+var bot := Bot.new("perfect")
 var tap_step := 0
 var tap_sent := 0
 
@@ -53,6 +54,8 @@ func _ready() -> void:
 			tap_test = true
 		elif a == "--menu":
 			shot_menu = true
+		elif a.begins_with("--bot="):
+			bot = Bot.new(a.get_slice("=", 1))
 		elif a == "--idle":
 			idle_bot = true
 		elif a == "--boss-test":
@@ -102,6 +105,7 @@ func _reset_level() -> void:
 	else:
 		sim.reset(level)
 	state = State.MENU
+	bot.reset()
 	world.end_celebration()
 	hud.set_level(level)
 	hud.show_overlay("", "PLAY", "Drag to move your archers")
@@ -181,7 +185,7 @@ func _process(dt: float) -> void:
 	time += dt
 	if state == State.PLAY:
 		if autoplay and not idle_bot:
-			Bot.steer(sim, dt)
+			bot.steer(sim, dt)
 		sim.tick(dt)
 		world.apply_fx(sim)
 		_play_fx()
