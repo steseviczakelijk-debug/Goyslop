@@ -4,6 +4,9 @@ on:
   push:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 env:
   GODOT_VERSION: "4.5"
 
@@ -63,3 +66,12 @@ jobs:
         with:
           name: goyslop-apk
           path: build/goyslop.apk
+
+      - name: Publish APK as rolling test release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest-build --yes --cleanup-tag || true
+          gh release create latest-build build/goyslop.apk --prerelease \
+            --target "$GITHUB_SHA" --title "Laatste testbuild" \
+            --notes "Automatische debug-build van commit $GITHUB_SHA."

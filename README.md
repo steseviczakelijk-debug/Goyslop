@@ -10,7 +10,8 @@ soldaten en aan het eind van elk level wacht een trol.
 
 - **In de editor:** open de map in Godot 4.5 en druk op F5.
 - **APK:** elke push bouwt een debug-APK via GitHub Actions
-  (Actions → laatste run → artifact `goyslop-apk`).
+  en zet die op een vaste link:
+  https://github.com/steseviczakelijk-debug/Goyslop/releases/download/latest-build/goyslop.apk
 - **Testbot:** `godot --headless --fixed-fps 60 -- --autoplay --levels=5`
 
 `ci/debug.keystore` is alleen voor testbuilds (standaard debug-wachtwoord).
