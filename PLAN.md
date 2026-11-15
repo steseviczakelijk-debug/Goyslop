@@ -7,8 +7,8 @@ Aanname: 8–10 uur per week van de maker; code wordt door een AI-assistent gesc
 ## Fase 0 – Fundament (1 week)
 Eindresultaat: het spel draait op een goedkope Android-telefoon op 60 beelden per
 seconde met een zichtbare fps-teller, en de code is opgedeeld.
-1. [ ] Meten op een echte telefoon: soepel op een Galaxy S26 Ultra; een goedkoop
-   toestel en de zware test (tik op de fps-teller) moeten nog.
+1. [x] Meten op een echte telefoon: goede fps op een Galaxy S26 Ultra. Een goedkoop
+   toestel is nog niet gemeten.
 2. [x] main.gd opgedeeld: simulatie, levelgenerator, weergave, interface, opslag, bot.
 3. [x] Alle balansgetallen in scripts/balance.gd.
 4. [x] Nieuwe naam: Bowbridge: Archer Legion, pakketnaam com.bowbridge.game.
@@ -16,18 +16,20 @@ seconde met een zichtbare fps-teller, en de code is opgedeeld.
 ## Fase 1 – Spelgevoel (2–3 weken)
 Eindresultaat: elke gebeurtenis geeft beeld én geluid; tien seconden opname zonder
 uitleg ziet eruit als een levend spel.
-1. Treffers: witte flits op de ork, vonkje, kort geluid.
-2. Dood van een ork: uit elkaar spatten in een rookwolkje, munt die opspringt.
-3. Poorten: getal veert op bij groei, flits en geluid bij doorlopen, nieuwe
-   boogschutters "ploppen" erin; verloren soldaten vallen zichtbaar weg.
-4. Schieten: terugslag per boogschutter, pijlen met spoor.
-5. Lopen: orks en boogschutters wiegen en stuiteren in code; twee-frame loopje als
-   de sprites consistent te genereren zijn.
-6. Trol: stampen met camerabeweging, rood oplichten, levensbalk, val bij verslaan.
-7. Camera: lichte schok bij verlies en baastreffers, inzoomen bij winst.
-8. Trillen van de telefoon bij poort, verlies en winst.
-9. Geluid: ongeveer vijftien effecten, één muziekstuk voor het level, één voor de baas.
-10. Win- en verliesmoment: confetti, leger juicht, munten tellen op.
+1. [x] Treffers: witte flits op de ork, geluid.
+2. [x] Dood van een ork: rookwolkje, munt die opspringt.
+3. [x] Poorten: getal veert op bij groei, deeltjes en geluid bij doorlopen, nieuwe
+   boogschutters "ploppen" erin, verliezen als rood getal en rode wolkjes.
+4. [x] Schieten: terugslag per boogschutter. [ ] Pijlen met spoor.
+5. [x] Lopen: orks en boogschutters wiegen en stuiteren in code. [ ] Twee-frame
+   loopje (eerst proef of de generator het figuur consistent houdt).
+6. [x] Trol: stampen met camerabeweging, oplichten, levensbalk, uiteenspatten.
+7. [x] Camera: schok bij verlies en baas. [ ] Inzoomen bij winst.
+8. [x] Trillen bij poort, verlies, stamp en winst.
+9. [x] Geluid: dertien effecten en één muziekstuk, allemaal gesynthetiseerd als
+   tijdelijke vulling (tools/make_sounds.py). [ ] Vervangen door opgenomen geluid;
+   [ ] apart muziekstuk voor de baas.
+10. [x] Winst: confetti, juichend leger. [ ] Munten die optellen.
 
 ## Fase 2 – Kernspel en balans (3–4 weken)
 Eindresultaat: tien levels die verschillend aanvoelen; een gemiddelde testbot wint

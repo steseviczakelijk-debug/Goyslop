@@ -10,6 +10,7 @@ const World = preload("res://scripts/world.gd")
 const Hud = preload("res://scripts/hud.gd")
 const SaveData = preload("res://scripts/save_data.gd")
 const Bot = preload("res://scripts/bot.gd")
+const Audio = preload("res://scripts/audio.gd")
 
 enum State { MENU, PLAY, WIN, LOSE }
 
@@ -21,6 +22,8 @@ var stress := false
 var sim := Sim.new()
 var world: World
 var hud: Hud
+var audio: Audio
+var buzz_ready := 0.0
 
 # Test hooks, set from the command line after "--".
 var autoplay := false
@@ -54,6 +57,8 @@ func _ready() -> void:
 	hud = Hud.new()
 	add_child(hud)
 	hud.stress_requested.connect(_start_stress)
+	audio = Audio.new()
+	add_child(audio)
 	_reset_level()
 	if autoplay:
 		_start()
@@ -73,6 +78,8 @@ func _reset_level() -> void:
 func _start() -> void:
 	state = State.PLAY
 	hud.hide_overlay()
+	audio.play("click")
+	audio.start_music()
 
 
 func _start_stress() -> void:
@@ -102,6 +109,7 @@ func _process(dt: float) -> void:
 			Bot.steer(sim, dt)
 		sim.tick(dt)
 		world.apply_fx(sim)
+		_play_fx()
 		if sim.outcome != 0:
 			_finish(sim.outcome > 0)
 	world.render(sim, time)
@@ -114,13 +122,53 @@ func _process(dt: float) -> void:
 		get_tree().quit()
 
 
+## Turns this tick's simulation events into sound and vibration.
+func _play_fx() -> void:
+	for e in sim.fx:
+		match e[0]:
+			"shot":
+				audio.play("shoot", -16.0, 0.11, 0.15)
+			"kill":
+				audio.play("kill", -8.0, 0.05, 0.2)
+				audio.play("coin", -18.0, 0.25, 0.1)
+			"lost":
+				audio.play("lost", -4.0, 0.12)
+				_buzz(25)
+			"gate":
+				audio.play("gate_good" if e[3] else "gate_bad", 0.0, 0.0, 0.03)
+				_buzz(30)
+			"grow":
+				audio.play("grow", -14.0, 0.05, 0.05)
+			"boss_hit":
+				audio.play("hit", -8.0, 0.07, 0.2)
+			"boss_dead":
+				audio.play("boss_dead", 2.0)
+	if world.stomped:
+		world.stomped = false
+		audio.play("stomp", -2.0)
+		_buzz(20)
+
+
+## Short phone vibration, limited so heavy fights do not buzz non-stop.
+func _buzz(ms: int) -> void:
+	if autoplay or time < buzz_ready:
+		return
+	buzz_ready = time + 0.15
+	Input.vibrate_handheld(ms)
+
+
 func _finish(win: bool) -> void:
 	state = State.WIN if win else State.LOSE
 	sim.b_count = 0
+	audio.duck_music()
 	if win:
 		world.celebrate(sim)
+		audio.play("win", 0.0, 0.0, 0.0)
+		_buzz(180)
 	else:
 		world.add_shake(0.5)
+		audio.play("lose", 0.0, 0.0, 0.0)
+		_buzz(120)
 	hud.show_overlay("VICTORY" if win else "DEFEAT", "NEXT LEVEL" if win else "RETRY", "")
 	if autoplay:
 		print("RESULT level=%d win=%s soldiers=%d progress=%.2f" % [level, win, sim.soldiers, sim.progress()])
