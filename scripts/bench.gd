@@ -31,6 +31,7 @@ func _init() -> void:
 		var reached := 0
 		var fight := 0.0    # seconds the boss fight lasted, over wins
 		var est := 0.0
+		var died := 0.0     # progress at which losing runs ended
 		for run in runs:
 			var bot := Bot.new(bot_name, level * 1000 + run)
 			sim.reset(level)
@@ -51,8 +52,10 @@ func _init() -> void:
 			if sim.outcome > 0:
 				wins += 1
 				fight += boss_time
+			else:
+				died += sim.progress()
 		total_wins += wins
-		print("BENCH bot=%s level=%d wins=%d/%d reached_boss=%d army=%.0f expected=%.0f fight=%.1fs" % [
-			bot_name, level, wins, runs, reached, army / maxf(reached, 1), est, fight / maxf(wins, 1)])
+		print("BENCH bot=%s level=%d wins=%d/%d reached_boss=%d army=%.0f expected=%.0f fight=%.1fs died_at=%.2f" % [
+			bot_name, level, wins, runs, reached, army / maxf(reached, 1), est, fight / maxf(wins, 1), died / maxf(runs - wins, 1)])
 	print("BENCH bot=%s total=%d/%d" % [bot_name, total_wins, runs * (last - first + 1)])
 	quit()

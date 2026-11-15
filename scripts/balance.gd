@@ -36,13 +36,15 @@ const ARMORED_COINS := 3
 const ARMORED_SHARE := 0.06      # part of a wave at ARMORED_FROM_LEVEL
 const ARMORED_SHARE_GROWTH := 0.02
 const ARMORED_SHARE_MAX := 0.25
+const ARMORED_MIN_ARMY := 30.0   # no armored orcs in a wave meant for a smaller army
 const ARMORED_ATTACK := 0.5      # seconds from raising the axe to the blow
 const ARMORED_STRIKE := 0.18     # the last part of that, axe coming down
 
 # Gates
 const GATE_HITS_PER_POINT := 7
-const GATE_GROW_SHARE := 0.5   # shooting can raise a gate by this part of its value
-const GATE_GROW_MIN := 3       # ... but always by at least this much
+const GATE_STEP_SHARE := 0.05  # each step raises a gate by this part of its value (at least 1)
+const GATE_COST_GROWTH := 1.3  # every next step needs this many times more hits
+const GATE_AIM_SHARE := 1.0    # part of the approach a perfect player spends shooting the gate
 
 # Boss
 const BOSS_R := 1.5
@@ -71,4 +73,20 @@ const EARLY_EASE := [0.55, 0.75]   # levels 1 and 2 are gentler, to learn the ga
 const WAVE_MIN := 1.8          # wave size as a multiple of the expected army
 const WAVE_MAX := 2.8
 const WAVE_CAP := 350
-const BOSS_HP_FACTOR := 38.0
+# A level is built around the army the perfect route yields. The troll is sized
+# so that an army this far below perfect still just beats him.
+const ALLOWED_DEVIATION := 0.35
+const BOSS_HP_PER_SOLDIER := 75.0  # health one soldier gets through in a boss fight
+const PERFECT_KEEPS := 0.75        # calibration: waves may cost the perfect route at most the rest
+const CALIBRATED_LEVELS := 100     # levels measured in scripts/level_table.gd
+const CYCLE_FROM_LEVEL := 21       # beyond the table, layouts repeat from this level on
+
+# Pace: from SPEED_FROM_LEVEL on, the march and the orcs get a little faster
+# every level, up to SPEED_MAX times the starting pace.
+const SPEED_FROM_LEVEL := 3
+const SPEED_PER_LEVEL := 0.03
+const SPEED_MAX := 1.4
+
+
+static func speed_for(level: int) -> float:
+	return minf(1.0 + maxi(0, level - SPEED_FROM_LEVEL + 1) * SPEED_PER_LEVEL, SPEED_MAX)

@@ -16,8 +16,9 @@ class Gate:
 	var z: float
 	var op: String
 	var value: int
-	var cap: int   # shooting cannot raise the value beyond this
-	var hits := 0
+	var step := 1          # how much one step of shooting adds
+	var steps := 0         # steps gained so far; each next one costs more hits
+	var hits := 0.0        # hits collected toward the next step
 	var pair: int
 
 	func apply(n: int) -> int:
@@ -30,6 +31,7 @@ var squad_r := 0.3
 var distance := 0.0
 var level_length := 1.0
 var scroll := 0.0
+var speed := 1.0   # pace of this level, see Balance.speed_for
 var fire_timer := 0.0
 var events: Array = []
 var next_event := 0
@@ -97,15 +99,25 @@ func _init() -> void:
 
 
 func reset(level: int) -> void:
+	speed = B.speed_for(level)
 	_load(LevelGen.generate(level), 1)
 	rng.seed = level
 
 
+## Loads a level that was generated elsewhere (used by calibration).
+func reset_with(level: int, data: Dictionary) -> void:
+	speed = B.speed_for(level)
+	_load(data, 1)
+	rng.seed = level
+
+
 func reset_boss_test() -> void:
+	speed = 1.0
 	_load(LevelGen.boss_only(), 60)
 
 
 func reset_stress() -> void:
+	speed = 1.0
 	_load(LevelGen.stress(), 100000)
 
 
@@ -121,7 +133,7 @@ func _load(data: Dictionary, start_soldiers: int) -> void:
 	distance = 0.0
 	next_event = 0
 	fire_timer = 0.0
-	scroll = B.SCROLL_SPEED
+	scroll = B.SCROLL_SPEED * speed
 	outcome = 0
 	coins_earned = 0
 
@@ -180,7 +192,7 @@ func _spawn_gate(def: Dictionary, x0: float, x1: float, z: float) -> void:
 	g.z = z
 	g.op = def.op
 	g.value = def.value
-	g.cap = def.value + maxi(B.GATE_GROW_MIN, int(round(absf(def.value) * B.GATE_GROW_SHARE)))
+	g.step = maxi(1, int(round(absf(def.value) * B.GATE_STEP_SHARE)))
 	g.pair = next_pair
 	gates.append(g)
 
@@ -245,9 +257,13 @@ func _update_bullets(dt: float) -> void:
 
 		for g in gates:
 			if g.op == "add" and g.z <= z_old and g.z >= z_new and x >= g.x0 and x < g.x1:
-				g.hits += 1
-				if g.hits % B.GATE_HITS_PER_POINT == 0 and g.value < g.cap:
-					g.value += 1
+				# Shooting always raises a gate, but each step costs more hits.
+				g.hits += 1.0
+				var needed := B.GATE_HITS_PER_POINT * pow(B.GATE_COST_GROWTH, g.steps)
+				if g.hits >= needed:
+					g.hits -= needed
+					g.steps += 1
+					g.value += g.step
 					fx.append(["grow", g.id])
 				dmg = 0.0
 				break
@@ -291,7 +307,7 @@ func _update_bullets(dt: float) -> void:
 
 
 func _update_enemies(dt: float) -> void:
-	var dz := (scroll + B.ENEMY_SPEED) * dt
+	var dz := (scroll + B.ENEMY_SPEED * speed) * dt
 	var steer := B.ENEMY_STEER * dt
 	var i := 0
 	while i < e_count:
