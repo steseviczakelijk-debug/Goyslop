@@ -18,7 +18,7 @@ Alle sprites: transparante PNG, zelfde stijl en camerahoek als `archer.png`
 ## Ronde 2 – omgeving
 - [x] 11. Gras – ontvangen, nog niet verwerkt
 - [x] 12. Water – ontvangen, nog niet verwerkt
-- [ ] 13. Dennenboom
+- [x] 13. Dennenboom – ontvangen, nog niet verwerkt
 - [ ] 14. Struik
 - [ ] 15. Rots
 - [ ] 16. Banier op paal (decor langs de brug)
