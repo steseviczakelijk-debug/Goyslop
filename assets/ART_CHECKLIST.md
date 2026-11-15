@@ -30,7 +30,7 @@ Alle sprites: transparante PNG, zelfde stijl en camerahoek als `archer.png`
 - [x] 20. Voortgangsbalk (20a) en kasteel-icoon (20b) – ontvangen, nog niet verwerkt
 - [x] 21. Tellerschildje – ontvangen, nog niet verwerkt
 - [x] 22. Knop – ontvangen, nog niet verwerkt
-- [ ] 23. Munt
+- [x] 23. Munt – ontvangen, nog niet verwerkt
 - [ ] 24. App-icoon
 
 ## Ronde 4 – later
