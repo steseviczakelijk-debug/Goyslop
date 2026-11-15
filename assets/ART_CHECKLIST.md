@@ -17,7 +17,7 @@ Alle sprites: transparante PNG, zelfde stijl en camerahoek als `archer.png`
 
 ## Ronde 2 – omgeving
 - [x] 11. Gras – ontvangen, nog niet verwerkt
-- [ ] 12. Water: naadloos herhaalbaar, recht van boven
+- [x] 12. Water – ontvangen, nog niet verwerkt
 - [ ] 13. Dennenboom
 - [ ] 14. Struik
 - [ ] 15. Rots
