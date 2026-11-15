@@ -22,7 +22,7 @@ Alle sprites: transparante PNG, zelfde stijl en camerahoek als `archer.png`
 - [x] 14. Struik – ontvangen, nog niet verwerkt
 - [x] 15. Rots – ontvangen, nog niet verwerkt
 - [x] 16. Banier op paal – ontvangen, nog niet verwerkt
-- [ ] 17. Kasteel (achtergrond)
+- [x] 17. Kasteel – ontvangen, nog niet verwerkt
 - [ ] 18. Lucht met wolken (achtergrond)
 
 ## Ronde 3 – interface
