@@ -16,7 +16,7 @@ Alle sprites: transparante PNG, zelfde stijl en camerahoek als `archer.png`
 - [x] 10. Brugleuning: houten segment – ontvangen, nog niet verwerkt (rode randpixels wegpoetsen)
 
 ## Ronde 2 – omgeving
-- [ ] 11. Gras: naadloos herhaalbaar, recht van boven
+- [x] 11. Gras – ontvangen, nog niet verwerkt
 - [ ] 12. Water: naadloos herhaalbaar, recht van boven
 - [ ] 13. Dennenboom
 - [ ] 14. Struik
