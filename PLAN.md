@@ -7,10 +7,11 @@ Aanname: 8–10 uur per week van de maker; code wordt door een AI-assistent gesc
 ## Fase 0 – Fundament (1 week)
 Eindresultaat: het spel draait op een goedkope Android-telefoon op 60 beelden per
 seconde met een zichtbare fps-teller, en de code is opgedeeld.
-1. Meten op een echte telefoon (fps-teller, 1500 vijanden, grootste leger).
-2. main.gd opdelen: simulatie, levelgenerator, weergave, interface, geluid, opslag.
-3. Alle balansgetallen in één instelbaar bestand.
-4. Nieuwe naam en pakketnaam kiezen (moet vóór de eerste Play Store-upload).
+1. [ ] Meten op een echte telefoon: soepel op een Galaxy S26 Ultra; een goedkoop
+   toestel en de zware test (tik op de fps-teller) moeten nog.
+2. [x] main.gd opgedeeld: simulatie, levelgenerator, weergave, interface, opslag, bot.
+3. [x] Alle balansgetallen in scripts/balance.gd.
+4. [x] Nieuwe naam: Bowbridge: Archer Legion, pakketnaam com.bowbridge.game.
 
 ## Fase 1 – Spelgevoel (2–3 weken)
 Eindresultaat: elke gebeurtenis geeft beeld én geluid; tien seconden opname zonder

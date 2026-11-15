@@ -58,20 +58,20 @@ jobs:
       - name: Export APK
         run: |
           mkdir -p build
-          "$RUNNER_TEMP/godot" --headless --export-debug "Android" build/goyslop.apk
+          "$RUNNER_TEMP/godot" --headless --export-debug "Android" build/bowbridge.apk
           ls -la build
-          test -s build/goyslop.apk
+          test -s build/bowbridge.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: goyslop-apk
-          path: build/goyslop.apk
+          name: bowbridge-apk
+          path: build/bowbridge.apk
 
       - name: Publish APK as rolling test release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release delete latest-build --yes --cleanup-tag || true
-          gh release create latest-build build/goyslop.apk --prerelease \
+          gh release create latest-build build/bowbridge.apk --prerelease \
             --target "$GITHUB_SHA" --title "Laatste testbuild" \
             --notes "Automatische debug-build van commit $GITHUB_SHA."

@@ -3,7 +3,7 @@ config_version=5
 
 [application]
 
-config/name="Goyslop"
+config/name="Bowbridge"
 run/main_scene="res://main.tscn"
 config/icon="res://assets/icon.png"
 config/features=PackedStringArray("4.5", "GL Compatibility")
