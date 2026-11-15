@@ -65,6 +65,7 @@ func _reset_level() -> void:
 	else:
 		sim.reset(level)
 	state = State.MENU
+	world.end_celebration()
 	hud.set_level(level)
 	hud.show_overlay("", "PLAY", "Drag to move your archers")
 
@@ -100,6 +101,7 @@ func _process(dt: float) -> void:
 		if autoplay:
 			Bot.steer(sim, dt)
 		sim.tick(dt)
+		world.apply_fx(sim)
 		if sim.outcome != 0:
 			_finish(sim.outcome > 0)
 	world.render(sim, time)
@@ -115,6 +117,10 @@ func _process(dt: float) -> void:
 func _finish(win: bool) -> void:
 	state = State.WIN if win else State.LOSE
 	sim.b_count = 0
+	if win:
+		world.celebrate(sim)
+	else:
+		world.add_shake(0.5)
 	hud.show_overlay("VICTORY" if win else "DEFEAT", "NEXT LEVEL" if win else "RETRY", "")
 	if autoplay:
 		print("RESULT level=%d win=%s soldiers=%d progress=%.2f" % [level, win, sim.soldiers, sim.progress()])

@@ -33,11 +33,16 @@ var fire_timer := 0.0
 var events: Array = []
 var next_event := 0
 var outcome := 0  # 0 while playing, 1 on win, -1 on loss
+## What happened this tick, for the view and audio to react to. Each entry is
+## [kind, ...]: ["shot", slot], ["kill", x, z], ["lost", x, z, count],
+## ["gate", x, gained, good], ["grow", gate_id], ["boss_hit"], ["boss_dead", x, z].
+var fx: Array = []
 var coins_earned := 0
 
 var e_x := PackedFloat32Array()
 var e_z := PackedFloat32Array()
 var e_hp := PackedFloat32Array()
+var e_flash := PackedFloat32Array()
 var e_count := 0
 var buckets: Array = []
 
@@ -56,6 +61,7 @@ var boss_hp := 0.0
 var boss_max := 1.0
 var boss_x := 0.0
 var boss_z := 0.0
+var boss_flash := 0.0
 
 var formation := PackedVector2Array()
 var rng := RandomNumberGenerator.new()
@@ -65,6 +71,7 @@ func _init() -> void:
 	e_x.resize(B.MAX_ENEMIES)
 	e_z.resize(B.MAX_ENEMIES)
 	e_hp.resize(B.MAX_ENEMIES)
+	e_flash.resize(B.MAX_ENEMIES)
 	b_x.resize(B.MAX_BULLETS)
 	b_z.resize(B.MAX_BULLETS)
 	b_dmg.resize(B.MAX_BULLETS)
@@ -126,6 +133,7 @@ func _spawn(ev: Dictionary) -> void:
 				e_x[e_count] = ev.x0 + (i % per_row) * B.ENEMY_SPACING
 				e_z[e_count] = z - (i / per_row) * B.ENEMY_SPACING
 				e_hp[e_count] = ev.hp
+				e_flash[e_count] = 0.0
 				e_count += 1
 		"boss":
 			boss_active = true
@@ -150,6 +158,7 @@ func _spawn_gate(def: Dictionary, x0: float, x1: float, z: float) -> void:
 
 
 func tick(dt: float) -> void:
+	fx.clear()
 	distance += scroll * dt
 	while next_event < events.size() and events[next_event].s - distance <= B.SPAWN_AHEAD:
 		_spawn(events[next_event])
@@ -178,7 +187,9 @@ func _fire() -> void:
 	for i in shooters:
 		if b_count >= B.MAX_BULLETS:
 			return
-		var f := formation[rng.randi() % shown]
+		var slot := rng.randi() % shown
+		var f := formation[slot]
+		fx.append(["shot", slot])
 		b_x[b_count] = clampf(squad_x + f.x, -B.ROAD_HALF + 0.1, B.ROAD_HALF - 0.1)
 		b_z[b_count] = f.y - 0.5
 		b_dmg[b_count] = dmg
@@ -207,11 +218,14 @@ func _update_bullets(dt: float) -> void:
 				g.hits += 1
 				if g.hits % B.GATE_HITS_PER_POINT == 0:
 					g.value += 1
+					fx.append(["grow", g.id])
 				dmg = 0.0
 				break
 
 		if dmg > 0.0 and boss_active and absf(x - boss_x) < B.BOSS_R and boss_z <= z_old + 1.0 and boss_z >= z_new - 1.0:
 			boss_hp -= dmg
+			boss_flash = 1.0
+			fx.append(["boss_hit"])
 			dmg = 0.0
 
 		if dmg > 0.0:
@@ -221,6 +235,9 @@ func _update_bullets(dt: float) -> void:
 					if e_hp[j] > 0.0 and absf(e_x[j] - x) < B.ENEMY_R and e_z[j] <= z_old + B.ENEMY_R and e_z[j] >= z_new - B.ENEMY_R:
 						var d := minf(dmg, e_hp[j])
 						e_hp[j] -= d
+						e_flash[j] = 1.0
+						if e_hp[j] <= 0.0:
+							fx.append(["kill", e_x[j], e_z[j]])
 						dmg -= d
 						if dmg <= 0.001:
 							break
@@ -251,12 +268,15 @@ func _update_enemies(dt: float) -> void:
 		else:
 			var z := e_z[i] + dz
 			var x := e_x[i]
+			e_flash[i] = maxf(0.0, e_flash[i] - dt * 9.0)
 			if z > -B.ENEMY_STEER_RANGE:
 				x = move_toward(x, squad_x, steer)
 				e_x[i] = x
 			e_z[i] = z
 			if z > -squad_r - B.ENEMY_R and absf(x - squad_x) < squad_r + B.ENEMY_R:
-				soldiers -= int(ceilf(e_hp[i]))
+				var cost := int(ceilf(e_hp[i]))
+				soldiers -= cost
+				fx.append(["lost", x, z, cost])
 				remove = true
 			elif z > 6.0:
 				remove = true
@@ -265,6 +285,7 @@ func _update_enemies(dt: float) -> void:
 			e_x[i] = e_x[e_count]
 			e_z[i] = e_z[e_count]
 			e_hp[i] = e_hp[e_count]
+			e_flash[i] = e_flash[e_count]
 		else:
 			i += 1
 
@@ -274,7 +295,9 @@ func _update_gates(dt: float) -> void:
 	for g in gates:
 		g.z += scroll * dt
 		if g.z >= -0.2 and squad_x >= g.x0 and squad_x < g.x1:
+			var before := soldiers
 			soldiers = clampi(g.apply(soldiers), 0, B.MAX_SOLDIERS)
+			fx.append(["gate", (g.x0 + g.x1) * 0.5, soldiers - before, soldiers >= before])
 			taken = g.pair
 	if taken >= 0 or (not gates.is_empty() and gates[0].z > 4.0):
 		var drop: int = taken if taken >= 0 else gates[0].pair
@@ -288,9 +311,11 @@ func _update_boss(dt: float) -> void:
 		scroll = 0.0
 	boss_z += (scroll + B.BOSS_SPEED) * dt
 	boss_x = move_toward(boss_x, squad_x, B.BOSS_STEER * dt)
+	boss_flash = maxf(0.0, boss_flash - dt * 9.0)
 	if boss_hp <= 0.0:
 		boss_active = false
 		coins_earned += B.COINS_PER_BOSS
+		fx.append(["boss_dead", boss_x, boss_z])
 		outcome = 1
 	elif boss_z > -squad_r - B.BOSS_R:
 		soldiers = 0
