@@ -19,7 +19,7 @@ Alle sprites: transparante PNG, zelfde stijl en camerahoek als `archer.png`
 - [x] 11. Gras – ontvangen, nog niet verwerkt
 - [x] 12. Water – ontvangen, nog niet verwerkt
 - [x] 13. Dennenboom – ontvangen, nog niet verwerkt
-- [ ] 14. Struik
+- [x] 14. Struik – ontvangen, nog niet verwerkt
 - [ ] 15. Rots
 - [ ] 16. Banier op paal (decor langs de brug)
 - [ ] 17. Kasteel (achtergrond)
