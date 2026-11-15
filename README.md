@@ -36,7 +36,16 @@ cp .env.example .env        # then fill it in
 
 Videos, scripts, the token and the history database live in `data/`.
 
-`config.yaml` controls the niche and tone, posts per day, active hours, video size, voice and
+### Marketing a game
+
+1. Fill in the `game:` section of `config.yaml`. Scripts are told to claim only what is written
+   there, so list real features, platforms, price and the call to action you want.
+2. Drop gameplay clips into `footage/`. Each video plays a random stretch of a random clip,
+   cropped to vertical, with the captions on top. Clip audio is not used.
+3. Leave `tiktok.promotes_own_brand: true`. It turns on TikTok's "Your brand" disclosure, which
+   is required when you promote your own product.
+
+`config.yaml` also controls the tone, posts per day, active hours, video size, voice and
 post privacy. The bot keeps a history of topics and tells Claude not to repeat them.
 
 To keep it running, use any process supervisor, for example:

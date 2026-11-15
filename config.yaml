@@ -1,4 +1,14 @@
-# What the account is about. Be specific: this is the main lever on quality.
+# The game being marketed. Scripts may only claim what is written here, so be concrete.
+# Leave `name` empty to run as a general content account using `niche` instead.
+game:
+  name: ""
+  pitch: ""                 # one or two sentences: genre, hook, what makes it different
+  features: []              # concrete things a player does or sees
+  platforms: ""             # e.g. "Steam (PC), out now" or "iOS and Android, launching March"
+  price: ""                 # e.g. "free", "$9.99", or leave empty
+  call_to_action: ""        # e.g. "Wishlist on Steam, link in bio"
+  made_by: ""               # e.g. "a solo developer", used for behind-the-scenes angles
+
 niche: "surprising facts about everyday objects"
 tone: "fast, curious, a little dry; no hype words"
 language: "English"
@@ -15,6 +25,8 @@ video:
   fps: 30
   font: "Inter"
   words_per_second: 2.6     # caption pacing when there is no voiceover
+  footage_dir: "footage"    # gameplay clips (mp4/mov/mkv/webm); empty folder = gradient background
+  footage_dim: 0.15         # darken footage by this much so captions stay readable
 
 voice:
   provider: "none"          # "none" or "elevenlabs"
@@ -27,6 +39,8 @@ tiktok:
   disable_comment: false
   disable_duet: false
   disable_stitch: false
+  # Promoting your own game is commercial content; TikTok requires the "Your brand" disclosure.
+  promotes_own_brand: true
   redirect_uri: "http://localhost:8721/callback"
 
 model: "claude-opus-5-5"

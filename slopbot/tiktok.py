@@ -152,6 +152,9 @@ class TikTok:
                 "disable_duet": bool(self.cfg.get("disable_duet") or info.get("duet_disabled")),
                 "disable_stitch": bool(self.cfg.get("disable_stitch") or info.get("stitch_disabled")),
                 "is_aigc": True,  # label the post as AI-generated
+                # Commercial content disclosure: "Your brand" (promoting yourself or your own business).
+                "brand_organic_toggle": bool(self.cfg.get("promotes_own_brand")),
+                "brand_content_toggle": False,
             },
             "source_info": {
                 "source": "FILE_UPLOAD",

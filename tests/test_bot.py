@@ -101,3 +101,26 @@ def test_post_video_sends_ranges_and_ai_label(tmp_path, monkeypatch):
     assert init["post_info"]["is_aigc"] is True
     assert init["source_info"] == {"source": "FILE_UPLOAD", "video_size": 25 * MB, "chunk_size": 10 * MB, "total_chunk_count": 2}
     assert puts == [(f"bytes 0-{10 * MB - 1}/{25 * MB}", 10 * MB), (f"bytes {10 * MB}-{25 * MB - 1}/{25 * MB}", 15 * MB)]
+
+
+def test_render_uses_gameplay_footage_when_present(tmp_path):
+    clips = tmp_path / "clips"
+    clips.mkdir()
+    # 2-second widescreen clip, shorter than the video, so looping and cropping are both exercised.
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "lavfi", "-i", "testsrc=s=640x360:r=30:d=2",
+                    "-pix_fmt", "yuv420p", str(clips / "a.mp4")], check=True)
+    cfg = {**CFG, "video": {**CFG["video"], "footage_dir": str(clips)}}
+    out = tmp_path / "v.mp4"
+    duration = render.render(["One two three.", "Four five six.", "Seven eight nine."], cfg, out, seed=1)
+    probe = subprocess.run(
+        ["ffprobe", "-v", "error", "-show_entries", "stream=width,height:format=duration",
+         "-of", "default=nw=1", str(out)], capture_output=True, text=True, check=True).stdout
+    assert "width=540" in probe and "height=960" in probe
+    assert float(probe.split("duration=")[1]) == pytest.approx(duration, abs=0.2)
+
+
+def test_game_brief_replaces_niche_only_when_game_is_set():
+    from slopbot.generate import subject
+    assert subject({"niche": "facts", "game": {"name": ""}}) == "Account niche: facts"
+    brief = subject({"niche": "facts", "game": {"name": "Moss Runner", "features": ["grappling hook"]}})
+    assert "Moss Runner" in brief and "- grappling hook" in brief and "facts" not in brief

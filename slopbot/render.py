@@ -14,6 +14,18 @@ PALETTES = [
 ]
 
 
+FOOTAGE_TYPES = {".mp4", ".mov", ".mkv", ".webm", ".m4v"}
+
+
+def pick_footage(cfg: dict, rng: random.Random) -> Path | None:
+    folder = cfg["video"].get("footage_dir")
+    if not folder:
+        return None
+    root = Path(folder) if Path(folder).is_absolute() else Path(__file__).resolve().parent.parent / folder
+    clips = sorted(p for p in root.glob("*") if p.suffix.lower() in FOOTAGE_TYPES) if root.is_dir() else []
+    return rng.choice(clips) if clips else None
+
+
 def audio_duration(path: Path) -> float:
     out = subprocess.run(
         ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(path)],
@@ -77,18 +89,32 @@ def render(lines: list[str], cfg: dict, out: Path, voice: Path | None = None, se
     ass = out.with_suffix(".ass")
     ass.write_text(build_ass(lines, timings, cfg), encoding="utf-8")
 
-    c0, c1, c2 = random.Random(seed).choice(PALETTES)
-    background = (
-        f"gradients=s={v['width']}x{v['height']}:r={v['fps']}:d={duration:.3f}"
-        f":c0={c0}:c1={c1}:c2={c2}:nb_colors=3:speed=0.008"
-    )
+    rng = random.Random(seed)
+    clip = pick_footage(cfg, rng)
+    if clip:
+        # Start at a random point; loop if the clip is shorter than the video.
+        start = rng.uniform(0, max(audio_duration(clip) - duration, 0))
+        video_in = ["-stream_loop", "-1", "-ss", f"{start:.2f}", "-i", str(clip.resolve())]
+        dim = float(v.get("footage_dim", 0.15))
+        prepare = (
+            f"scale={v['width']}:{v['height']}:force_original_aspect_ratio=increase,"
+            f"crop={v['width']}:{v['height']},fps={v['fps']},eq=brightness={-dim:.2f},"
+        )
+    else:
+        c0, c1, c2 = rng.choice(PALETTES)
+        video_in = ["-f", "lavfi", "-i", (
+            f"gradients=s={v['width']}x{v['height']}:r={v['fps']}:d={duration:.3f}"
+            f":c0={c0}:c1={c1}:c2={c2}:nb_colors=3:speed=0.008"
+        )]
+        prepare = ""
     audio = ["-i", str(voice.resolve())] if voice else ["-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo"]
     cmd = [
         "ffmpeg", "-y", "-loglevel", "error",
-        "-f", "lavfi", "-i", background,
+        *video_in,
         *audio,
+        "-map", "0:v:0", "-map", "1:a:0",
         # Relative filename + cwd avoids ffmpeg filter-path escaping.
-        "-vf", f"subtitles={ass.name},format=yuv420p",
+        "-vf", f"{prepare}subtitles={ass.name},format=yuv420p",
         "-t", f"{duration:.3f}",
         "-c:v", "libx264", "-preset", "medium", "-crf", "20",
         "-c:a", "aac", "-b:a", "128k", "-ar", "44100",

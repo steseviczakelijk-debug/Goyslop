@@ -33,14 +33,43 @@ date, pick a different angle instead of guessing. Do not give medical, legal or 
 advice, and do not write about real private individuals."""
 
 
+GAME_BRIEF = """This account markets one game. The captions play over gameplay footage, but \
+you cannot see which clip, so do not describe specific on-screen moments ("watch this jump").
+
+Game: {name}
+Pitch: {pitch}
+Features:
+{features}
+Platforms and availability: {platforms}
+Price: {price}
+Made by: {made_by}
+Call to action: {call_to_action}
+
+Say only what this brief supports: no invented features, review quotes, awards, player counts, \
+prices or dates, and no comparisons that name other games. Each video takes one angle, for \
+example a single feature, the kind of player it suits, a design decision and why it was made, \
+or a development story. Rotate angles across videos. Most viewers scroll past adverts, so earn \
+attention with something specific and interesting about the game, and keep the call to action \
+to the final beat."""
+
+
+def subject(cfg: dict) -> str:
+    game = cfg.get("game") or {}
+    if not game.get("name"):
+        return f"Account niche: {cfg['niche']}"
+    features = "\n".join(f"- {f}" for f in game.get("features") or []) or "(none listed)"
+    fields = {k: game.get(k) or "(not specified)" for k in ("name", "pitch", "platforms", "price", "made_by", "call_to_action")}
+    return GAME_BRIEF.format(features=features, **fields)
+
+
 def write_script(cfg: dict, avoid_topics: list[str]) -> Script:
     client = anthropic.Anthropic()
     avoid = "\n".join(f"- {t}" for t in avoid_topics) or "(none yet)"
     prompt = (
-        f"Account niche: {cfg['niche']}\n"
+        f"{subject(cfg)}\n\n"
         f"Tone: {cfg['tone']}\n"
         f"Language: {cfg.get('language', 'English')}\n\n"
-        f"Topics already covered, which this video must not repeat or closely resemble:\n{avoid}\n\n"
+        f"Angles already covered, which this video must not repeat or closely resemble:\n{avoid}\n\n"
         "Write the next video."
     )
     response = client.beta.messages.parse(
