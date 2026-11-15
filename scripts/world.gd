@@ -12,8 +12,7 @@ const WALL_WIDTH := 0.55
 const WALL_HEIGHT := 0.7
 const WALL_TOP_PERIOD := WALL_WIDTH * 3.0    # the capstone picture is 1:3
 const WALL_SIDE_PERIOD := WALL_HEIGHT * 4.0  # the stone strip is 4:1
-const WATER_HALF := 13.0
-const WATER_TILE := 7.0
+const RIVER_PERIOD := 200.0
 const SCENERY_LOOP := 200.0
 const GATE_WIDTH := 3.7
 const GATE_BASE := 1.0
@@ -293,10 +292,7 @@ func _build_world() -> void:
 	grass.position.z = -200
 	grass_mat = grass.mesh.material
 	grass_mat.albedo_color = Color(0.88, 0.93, 0.88)  # a touch calmer, so units stand out
-	# The bridge crosses a wide river for its whole length; the banks start at
-	# WATER_HALF on either side.
-	river = _ground("res://assets/water.png", Vector2(WATER_HALF * 2.0, 600), -0.05, Vector2(WATER_HALF * 2.0 / WATER_TILE, 600.0 / WATER_TILE))
-	river.position.z = -200
+	river = _ground("res://assets/water.png", Vector2(600, 14), -0.05, Vector2(42, 1))
 	water_mat = river.mesh.material
 	var deck := _ground("res://assets/bridge_floor.png", Vector2(B.ROAD_HALF * 2, 240), 0.0, Vector2(2, 240.0 / FLOOR_PERIOD))
 	deck.position.z = -100
@@ -327,14 +323,14 @@ func _build_world() -> void:
 	# Roadside scenery loops forever as the level scrolls.
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 4242
-	_scatter("res://assets/pine.png", 5.5, 30, WATER_HALF + 1.5, 40.0, rng)
-	_scatter("res://assets/bush.png", 1.4, 18, WATER_HALF + 0.6, 30.0, rng)
-	_scatter("res://assets/rock.png", 1.3, 14, 6.0, WATER_HALF + 6.0, rng)
+	_scatter("res://assets/pine.png", 5.5, 26, 7.5, 34.0, rng)
+	_scatter("res://assets/bush.png", 1.4, 18, 5.8, 26.0, rng)
+	_scatter("res://assets/rock.png", 1.3, 12, 5.8, 22.0, rng)
 	var poles := PackedVector2Array()
 	for i in int(SCENERY_LOOP / 20.0):
-		poles.append(Vector2(-B.ROAD_HALF - WALL_WIDTH * 0.5, i * 20.0))
-		poles.append(Vector2(B.ROAD_HALF + WALL_WIDTH * 0.5, i * 20.0))
-	var pole_mm := _multimesh(_sprite_mesh("res://assets/banner_pole.png", 3.4, WALL_HEIGHT), poles.size())
+		poles.append(Vector2(-5.4, i * 20.0))
+		poles.append(Vector2(5.4, i * 20.0))
+	var pole_mm := _multimesh(_sprite_mesh("res://assets/banner_pole.png", 4.2), poles.size())
 	pole_mm.visible_instance_count = poles.size()
 	scenery.append([pole_mm, poles])
 
@@ -541,7 +537,8 @@ func render(sim: Sim, time: float) -> void:
 	# Scrolling ground: slide the textures instead of moving geometry.
 	floor_mat.uv1_offset.y = -fposmod(sim.distance / FLOOR_PERIOD, 1.0)
 	grass_mat.uv1_offset.y = -fposmod(sim.distance / GRASS_PERIOD, 1.0)
-	water_mat.uv1_offset = Vector3(fposmod(time * 0.04, 1.0), -fposmod(sim.distance / WATER_TILE, 1.0), 0)
+	water_mat.uv1_offset.x = fposmod(time * 0.03, 1.0)
+	river.position.z = fposmod(sim.distance + 70.0, RIVER_PERIOD) - 170.0
 
 	for w in wall_mats:
 		var shift := fposmod(sim.distance * w[1], 1.0)
