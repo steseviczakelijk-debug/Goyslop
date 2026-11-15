@@ -365,20 +365,10 @@ func _build_world() -> void:
 	boss_mat = troll.material
 	boss_sprite = _instance(troll, Vector3.ZERO, boss_node)
 
-	var glow := Gradient.new()
-	glow.set_color(0, Color(1.0, 0.15, 0.1, 0.75))
-	glow.set_color(1, Color(1.0, 0.15, 0.1, 0.0))
-	var glow_tex := GradientTexture2D.new()
-	glow_tex.gradient = glow
-	glow_tex.fill = GradientTexture2D.FILL_RADIAL
-	glow_tex.fill_from = Vector2(0.5, 0.5)
-	glow_tex.fill_to = Vector2(1.0, 0.5)
-	glow_tex.width = 64
-	glow_tex.height = 64
-	var glow_mat := _unshaded(glow_tex)
+	var glow_mat := _unshaded(load("res://assets/warning_ring.png"))
 	glow_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	var patch := PlaneMesh.new()
-	patch.size = Vector2(B.BOSS_SMASH_HALF * 2.6, B.BOSS_SMASH_HALF * 2.6)
+	patch.size = Vector2(B.BOSS_SMASH_HALF * 3.0, B.BOSS_SMASH_HALF * 3.0)
 	patch.material = glow_mat
 	boss_warning = _instance(patch, Vector3(0, 0.06, B.BOSS_REACH), boss_node)
 	boss_warning.visible = false

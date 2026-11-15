@@ -49,6 +49,12 @@ spelklare bestanden in `assets/` van.
 - [x] 35. Trol haalt uit: knots omhoog en knots naar beneden – `troll_windup.png`, `troll_smash.png`
 - [x] 36. Trol, tweede stap – `troll_step.png`
 
+- [x] 37. Waarschuwingsring voor de klap van de trol – `warning_ring.png`
+- [x] 38. Vulling van de voortgangsbalk – `ui_progress_fill.png`
+- [ ] 39. Titelbanners: winst binnen (`ui_title_victory.png`), verlies nog te doen
+- [ ] 40. Boogschutter: tweede stap, juichen, vallen
+- [ ] 41. Trol geraakt
+
 ## Ronde 5 – later
 - [ ] 32. Sterke vijand (gepantserde ork)
 - [ ] 33. Ton of kist met ruimte voor een teller

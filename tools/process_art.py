@@ -75,6 +75,23 @@ def key_checkerboard(im):
     return Image.fromarray(out)
 
 
+def unmix_from_white(im, color=(255, 45, 30)):
+    """Recover transparency for a glowing object painted on a white backdrop.
+
+    Each pixel is treated as `color` laid over white; how far it is from white
+    gives the opacity. Works for single-hue glows, not for full-colour figures.
+    """
+    a = np.array(im.convert("RGB")).astype(np.float32)
+    alpha = np.clip(1.25 * (1.0 - a[..., 1:].min(axis=2) / 246.0), 0.0, 1.0)
+    alpha[alpha < 0.06] = 0.0
+    rgb = np.clip((a - (1.0 - alpha[..., None]) * 250.0) / np.maximum(alpha[..., None], 0.05), 0, 255)
+    rgb = np.where(alpha[..., None] > 0, rgb, np.array(color, np.float32))
+    # A light blur irons out the checkerboard that shows through the glow.
+    from PIL import ImageFilter
+    soft = np.array(Image.fromarray((alpha * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(7)))
+    return Image.fromarray(np.dstack([rgb, soft]).astype(np.uint8))
+
+
 def pose_pair(first, second, dst_first, dst_second, height):
     """Two poses of one figure, cropped by the same box so they line up."""
     a = np.array(first)
@@ -139,6 +156,12 @@ def main():
 
     # Effects
     sprite("25_puff.png", "puff.png", height=128)
+    ring = unmix_from_white(load("37_warning_ring.png"))
+    ring = ring.crop(ring.getbbox())
+    side = max(ring.size)
+    square = Image.new("RGBA", (side, side), (255, 45, 30, 0))
+    square.paste(ring, ((side - ring.width) // 2, (side - ring.height) // 2))
+    square.resize((256, 256), Image.LANCZOS).save(OUT / "warning_ring.png")
     sprite("26_spark.png", "spark.png", height=128)
     sheet = load("27_confetti.png")
     atlas = Image.new("RGBA", (96 * 3, 96 * 2), (0, 0, 0, 0))
@@ -154,6 +177,10 @@ def main():
     # Interface
     sprite("28_menu_panel.png", "ui_menu_panel.png", width=640)
     sprite("29_pause_icon.png", "ui_pause.png", height=96)
+    sprite("38_progress_fill.png", "ui_progress_fill.png", height=48)
+    sprite("39a_victory_banner.png", "ui_title_victory.png", width=768)
+    if (RAW / "39b_defeat_banner.png").exists():
+        sprite("39b_defeat_banner.png", "ui_title_defeat.png", width=768)
     sprite("19_level_banner.png", "ui_level_banner.png", width=1024)
     sprite("20a_progress_bar.png", "ui_progress_bar.png", width=1024)
     sprite("20b_castle_icon.png", "ui_castle_icon.png", height=128)

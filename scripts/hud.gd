@@ -15,10 +15,11 @@ var coin_label: Label
 var coin_icon: TextureRect
 var coin_layer: Control
 var coins_flying := 0
-var progress_fill: Panel
+var progress_fill: NinePatchRect
 var progress_width := 0.0
 var overlay: Control
 var msg_label: Label
+var title_banner: TextureRect
 var sub_label: Label
 var button_label: Label
 var perf_button: Button
@@ -78,11 +79,11 @@ func _ready() -> void:
 	var bar := _hud_image(root, "res://assets/ui_progress_bar.png", 400, 176)
 	var bar_h := bar.offset_bottom - bar.offset_top
 	progress_width = 400 * 0.93
-	progress_fill = Panel.new()
-	var fill_style := StyleBoxFlat.new()
-	fill_style.bg_color = Color(0.25, 0.8, 1.0)
-	fill_style.set_corner_radius_all(int(bar_h * 0.3))
-	progress_fill.add_theme_stylebox_override("panel", fill_style)
+	# The rounded ends stay intact while the middle stretches with progress.
+	progress_fill = NinePatchRect.new()
+	progress_fill.texture = load("res://assets/ui_progress_fill.png")
+	progress_fill.patch_margin_left = 24
+	progress_fill.patch_margin_right = 24
 	progress_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bar.add_child(progress_fill)
 	progress_fill.position = Vector2(400 * 0.035, bar_h * 0.22)
@@ -110,9 +111,16 @@ func _ready() -> void:
 	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
 	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(overlay)
+	# The title sits on a ribbon when there is one for it (see show_overlay).
+	title_banner = _hud_image(overlay, "res://assets/ui_title_victory.png", 700, 0)
+	title_banner.anchor_top = 0.5
+	title_banner.anchor_bottom = 0.5
+	var ribbon_h := title_banner.offset_bottom
+	title_banner.offset_top = -270 - ribbon_h * 0.49
+	title_banner.offset_bottom = -270 + ribbon_h * 0.51
 	msg_label = _hud_label(overlay, 100)
 	msg_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	msg_label.offset_bottom = -420
+	msg_label.offset_bottom = -520
 	var button := _hud_image(overlay, "res://assets/ui_button.png", 400, 0)
 	button.anchor_top = 0.5
 	button.anchor_bottom = 0.5
@@ -164,6 +172,11 @@ func _ready() -> void:
 func show_overlay(title: String, button: String, sub: String) -> void:
 	overlay.visible = true
 	msg_label.text = title
+	var ribbon := "res://assets/ui_title_%s.png" % title.to_lower()
+	title_banner.visible = title != "" and ResourceLoader.exists(ribbon)
+	if title_banner.visible:
+		title_banner.texture = load(ribbon)
+	msg_label.add_theme_font_size_override("font_size", 62 if title_banner.visible else 100)
 	button_label.text = button
 	sub_label.text = sub
 
@@ -178,6 +191,7 @@ func set_level(level: int) -> void:
 
 func set_progress(fraction: float) -> void:
 	progress_fill.size.x = progress_width * fraction
+	progress_fill.visible = progress_fill.size.x >= 20.0
 
 
 func set_coins(coins: int) -> void:
