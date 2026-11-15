@@ -22,6 +22,7 @@ var boss_node: Node3D
 var boss_label: Label3D
 var enemy_mm: MultiMesh
 var bullet_mm: MultiMesh
+var trail_mm: MultiMesh
 var soldier_mm: MultiMesh
 var shadow_mm: MultiMesh
 var enemy_shadow_mm: MultiMesh
@@ -60,6 +61,9 @@ var boss_bar: MeshInstance3D
 var boss_step := 0.0
 var gate_pulse := {}          # gate id -> remaining pulse time
 var last_time := 0.0
+## Screen positions where a coin should start flying to the counter; main
+## hands these to the interface and clears the list.
+var coin_flights: Array[Vector2] = []
 ## True for one frame when the boss lands a step; main reads it for sound.
 var stomped := false
 
@@ -311,6 +315,26 @@ func _build_world() -> void:
 	slot_recoil.resize(B.MAX_SHOWN)
 	slot_pop.resize(B.MAX_SHOWN)
 	slot_x.resize(B.MAX_SHOWN)
+	# A faint streak behind each arrow makes its flight readable.
+	var streak := Gradient.new()
+	streak.set_color(0, Color(1, 1, 1, 0.55))
+	streak.set_color(1, Color(1, 1, 1, 0))
+	var streak_tex := GradientTexture2D.new()
+	streak_tex.gradient = streak
+	streak_tex.fill_from = Vector2(0.5, 0.0)
+	streak_tex.fill_to = Vector2(0.5, 1.0)
+	streak_tex.width = 8
+	streak_tex.height = 64
+	var trail_mat := _unshaded(streak_tex)
+	trail_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	trail_mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	trail_mat.billboard_keep_scale = true
+	trail_mat.no_depth_test = true
+	var trail := QuadMesh.new()
+	trail.size = Vector2(0.1, 1.6)
+	trail.center_offset = Vector3(0, -0.4, 0)
+	trail.material = trail_mat
+	trail_mm = _multimesh(trail, B.MAX_BULLETS)
 	bullet_mm = _multimesh(_sprite_mesh("res://assets/arrow.png", 1.7, 0.3), B.MAX_BULLETS)
 
 	var gate_h := GATE_WIDTH * 295.0 / 512.0
@@ -413,9 +437,13 @@ func render(sim: Sim, time: float) -> void:
 		enemy_shadow_mm.set_instance_transform(i, t)
 
 	bullet_mm.visible_instance_count = sim.b_count
+	trail_mm.visible_instance_count = sim.b_count
 	for i in sim.b_count:
-		t.origin = Vector3(sim.b_x[i], 0.0, sim.b_z[i])
+		# Arrows rise and fall along a shallow arc over their full range.
+		var flown := 1.0 - sim.b_left[i] / B.BULLET_RANGE
+		t.origin = Vector3(sim.b_x[i], sin(flown * PI) * 0.7, sim.b_z[i])
 		bullet_mm.set_instance_transform(i, t)
+		trail_mm.set_instance_transform(i, t)
 
 	var shown := mini(sim.soldiers, B.MAX_SHOWN)
 	soldier_mm.visible_instance_count = shown
@@ -515,6 +543,8 @@ func apply_fx(sim: Sim) -> void:
 						sparks.emit(at, Vector3.ZERO, 0.12, 0.8, Color.WHITE, 0.0, 6.0)
 					if kills <= 3:
 						coins_fx.emit(at, Vector3(randf_range(-1.5, 1.5), randf_range(5.0, 8.0), randf_range(-0.5, 1.5)), 0.7, 0.45)
+						if kills == 1:
+							coin_flights.append(cam.unproject_position(at))
 			"lost":
 				lost_pending += e[3]
 				add_shake(0.06)
@@ -536,6 +566,8 @@ func apply_fx(sim: Sim) -> void:
 				add_shake(0.6)
 				for k in 36:
 					puffs.emit(Vector3(e[1] + randf_range(-1.5, 1.5), randf_range(0.5, 5.0), e[2]), Vector3(randf_range(-4.0, 4.0), randf_range(1.0, 6.0), randf_range(-2.0, 2.0)), randf_range(0.5, 1.0), 1.2, Color(0.7, 0.95, 0.85, 0.95), 0.0, randf_range(-2.0, 2.0))
+				for k in 10:
+					coin_flights.append(cam.unproject_position(Vector3(e[1] + randf_range(-2.0, 2.0), randf_range(1.0, 4.0), e[2])))
 				for k in 30:
 					coins_fx.emit(Vector3(e[1], 2.5, e[2]), Vector3(randf_range(-4.0, 4.0), randf_range(6.0, 12.0), randf_range(0.0, 6.0)), 1.4, 0.6)
 

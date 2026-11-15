@@ -78,6 +78,7 @@ func _ready() -> void:
 	hud.menu_toggled.connect(func(open): paused = open)
 	hud.restart_requested.connect(_restart)
 	hud.settings_changed.connect(_on_settings_changed)
+	hud.coin_landed.connect(func(): audio.play("coin", -14.0, 0.06, 0.12))
 	hud.load_settings(settings.music, settings.sfx, settings.vibrate)
 	audio = Audio.new()
 	add_child(audio)
@@ -176,6 +177,9 @@ func _process(dt: float) -> void:
 		sim.tick(dt)
 		world.apply_fx(sim)
 		_play_fx()
+		for at in world.coin_flights:
+			hud.fly_coin(at)
+		world.coin_flights.clear()
 		if sim.outcome != 0:
 			_finish(sim.outcome > 0)
 	world.render(sim, time)
@@ -202,7 +206,6 @@ func _play_fx() -> void:
 				_buzz(12, 0.07)
 			"kill":
 				audio.play("kill", -8.0, 0.05, 0.2)
-				audio.play("coin", -18.0, 0.25, 0.1)
 			"lost":
 				audio.play("lost", -4.0, 0.12)
 				buzz_ready = 0.0

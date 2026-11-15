@@ -6,11 +6,15 @@ signal stress_requested
 signal menu_toggled(open: bool)
 signal settings_changed(music: float, sfx: float, vibrate: bool)
 signal restart_requested
+signal coin_landed
 
 const INK := Color(0.05, 0.1, 0.3)
 
 var level_label: Label
 var coin_label: Label
+var coin_icon: TextureRect
+var coin_layer: Control
+var coins_flying := 0
 var progress_fill: Panel
 var progress_width := 0.0
 var overlay: Control
@@ -87,7 +91,12 @@ func _ready() -> void:
 	icon.offset_left = 200 - 40
 	icon.offset_right = 200 + 22
 
+	coin_layer = Control.new()
+	coin_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	coin_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(coin_layer)
 	var coin := _hud_image(root, "res://assets/coin.png", 46, 250)
+	coin_icon = coin
 	coin.anchor_left = 0.0
 	coin.anchor_right = 0.0
 	coin.offset_left = 28
@@ -314,3 +323,30 @@ func close_menu() -> void:
 	if menu.visible:
 		menu.visible = false
 		menu_toggled.emit(false)
+
+
+## Sends a coin from a point on screen to the coin counter, which bumps when
+## it lands. Limited in number so a big fight stays readable.
+func fly_coin(from: Vector2) -> void:
+	if coins_flying >= 8:
+		return
+	coins_flying += 1
+	var coin := TextureRect.new()
+	coin.texture = coin_icon.texture
+	coin.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	coin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	coin.size = Vector2(32, 34)
+	coin.position = from - coin.size * 0.5
+	coin_layer.add_child(coin)
+	var target := coin_icon.get_global_rect().get_center() - coin.size * 0.5
+	var hop := coin.position + Vector2(randf_range(-50, 50), randf_range(-90, -40))
+	var tween := create_tween()
+	tween.tween_property(coin, "position", hop, 0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(coin, "position", target, 0.38).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tween.tween_callback(func():
+		coin.queue_free()
+		coins_flying -= 1
+		coin_landed.emit()
+		coin_icon.pivot_offset = coin_icon.size * 0.5
+		coin_icon.scale = Vector2(1.35, 1.35)
+		create_tween().tween_property(coin_icon, "scale", Vector2.ONE, 0.15))

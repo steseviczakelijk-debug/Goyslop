@@ -20,7 +20,7 @@ uitleg ziet eruit als een levend spel.
 2. [x] Dood van een ork: rookwolkje, munt die opspringt.
 3. [x] Poorten: getal veert op bij groei, deeltjes en geluid bij doorlopen, nieuwe
    boogschutters "ploppen" erin, verliezen als rood getal en rode wolkjes.
-4. [x] Schieten: terugslag per boogschutter. [ ] Pijlen met spoor.
+4. [x] Schieten: terugslag per boogschutter, pijlen met boog en spoor.
 5. [x] Lopen: orks wisselen tussen twee poses en wiegen; boogschutters tonen een
    aparte pose na het schot. De generator hield de figuren consistent, dus
    pose-animatie via bewerkte afbeeldingen werkt.
@@ -31,7 +31,7 @@ uitleg ziet eruit als een levend spel.
    tijdelijke vulling (tools/make_sounds.py). [ ] Vervangen door opgenomen geluid;
    [ ] apart muziekstuk voor de baas.
 10. [x] Winst: confetti, juichend leger, vertraging bij de laatste klap.
-    [ ] Munten die optellen.
+    [x] Munten vliegen naar de teller. [ ] Munten die optellen op het winstscherm.
 11. [x] Menu met pauze, volume voor muziek en geluid, trillen aan/uit, level
     opnieuw; de terugknop van Android en het verlaten van de app openen het menu.
 12. [x] Levendiger: boogschutters volgen met vertraging, orks verschillen in
