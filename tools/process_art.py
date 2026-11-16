@@ -216,6 +216,21 @@ def main():
     sprite("22_button.png", "ui_button.png", width=768)
     sprite("23_coin.png", "coin.png", height=128)
 
+    # Upgrades, daily reward and start screen
+    sprite("47_up_army.png", "ui_up_army.png", height=160)
+    sprite("48_up_damage.png", "ui_up_damage.png", height=160)
+    sprite("51_up_card.png", "ui_card.png", width=768)
+    sprite("52_dot.png", "ui_dot.png", height=96)
+    sprite("61_daily_panel.png", "ui_daily_panel.png", width=640)
+    sprite("62_tile.png", "ui_tile.png", height=192)
+    sprite("63_check.png", "ui_check.png", height=128)
+    sprite("64_hand.png", "ui_hand.png", height=192)
+    sprite("65_logo.png", "ui_logo.png", width=768)
+    banner = load("66_store_banner.png").convert("RGB")
+    crop = round(banner.width * 500 / 1024)
+    top = (banner.height - crop) // 2
+    banner.crop((0, top, banner.width, top + crop)).resize((1024, 500), Image.LANCZOS).save("store/feature_graphic.png")
+
     # App icon: full-bleed icon plus Android adaptive layers
     icon = load("24_app_icon.png").convert("RGB")
     icon.resize((512, 512), Image.LANCZOS).save(OUT / "icon.png")

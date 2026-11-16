@@ -58,6 +58,17 @@ const BOSS_SMASH_HALF := 1.7     # half-width of the impact
 const BOSS_SMASH_SHARE := 0.35   # part of the squad a direct hit removes
 const BOSS_SMASH_MIN := 4
 
+# Upgrades bought with coins. `step` is what one level adds.
+const UPGRADES := [
+	{"key": "up_army", "name": "ARMY", "icon": "res://assets/ui_up_army.png", "base": 150, "step": 1.0, "text": "Start with %d archers"},
+	{"key": "up_damage", "name": "DAMAGE", "icon": "res://assets/ui_up_damage.png", "base": 200, "step": 0.05, "text": "Arrow damage +%d%%"},
+	{"key": "up_rate", "name": "FIRE RATE", "icon": "res://assets/arrow.png", "base": 200, "step": 0.03, "text": "Fire rate +%d%%"},
+	{"key": "up_coins", "name": "COINS", "icon": "res://assets/coin.png", "base": 250, "step": 0.1, "text": "Coins earned +%d%%"},
+]
+const UPGRADE_PRICE_GROWTH := 1.45
+const UPGRADE_MAX_LEVEL := 25
+const DAILY_REWARDS := [100, 200, 300, 400, 500, 750, 1500]
+
 # Rewards
 const STARS_3 := 0.85   # part of the perfect army you must still have for three stars
 const STARS_2 := 0.6
@@ -92,3 +103,7 @@ const SPEED_MAX := 1.4
 
 static func speed_for(level: int) -> float:
 	return minf(1.0 + maxi(0, level - SPEED_FROM_LEVEL + 1) * SPEED_PER_LEVEL, SPEED_MAX)
+
+
+static func upgrade_price(index: int, owned: int) -> int:
+	return int(round(UPGRADES[index].base * pow(UPGRADE_PRICE_GROWTH, owned) / 10.0)) * 10

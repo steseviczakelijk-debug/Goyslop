@@ -10,6 +10,7 @@ signal coin_landed
 
 const INK := Color(0.05, 0.1, 0.3)
 const WinScreen = preload("res://scripts/win_screen.gd")
+const MetaUi = preload("res://scripts/meta_ui.gd")
 
 var level_label: Label
 var coin_label: Label
@@ -23,6 +24,7 @@ var msg_label: Label
 var title_banner: TextureRect
 var result_button: TextureRect
 var win_screen: WinScreen
+var meta: MetaUi
 var sub_label: Label
 var button_label: Label
 var perf_button: Button
@@ -139,6 +141,9 @@ func _ready() -> void:
 	sub_label = _hud_label(overlay, 34)
 	sub_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	sub_label.offset_top = 110
+
+	meta = MetaUi.new()
+	root.add_child(meta)
 
 	menu_button = TextureButton.new()
 	menu_button.texture_normal = load("res://assets/ui_badge.png")

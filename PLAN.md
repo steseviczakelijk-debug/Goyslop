@@ -19,6 +19,16 @@ Rules of the road
 2. Win moment – stars against the perfect army, coins counting up with a rising
    tone, an honest reward wheel (x1–x5), continue button only afterwards.
 
+3. Upgrades (built; two icons and balance check pending) – army, damage, fire
+   rate and coin bonus, bought on the start screen; prices rise 45% per level,
+   25 levels each. After a win the game returns to the start screen. Fire-rate
+   and coin icons are stand-ins. Not yet measured: how much upgrades ease the
+   calibrated levels.
+6a. Daily reward (built early, from step 6) – seven days, 100 to 1500 coins; a
+   missed day restarts the run.
+Also built: logo and tutorial hand on the start screen. Stored, unused: store
+banner (store/feature_graphic.png), hero archer (one pose).
+
 ## Next, in order
 3. Upgrades (give coins a purpose)
    Start army, damage, fire rate, coin bonus; rising prices; an always-visible

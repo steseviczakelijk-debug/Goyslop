@@ -32,6 +32,10 @@ var distance := 0.0
 var level_length := 1.0
 var scroll := 0.0
 var speed := 1.0   # pace of this level, see Balance.speed_for
+# Bought upgrades, set by the game before a level starts.
+var start_soldiers := 1
+var damage_mult := 1.0
+var rate_mult := 1.0
 var fire_timer := 0.0
 var events: Array = []
 var next_event := 0
@@ -102,7 +106,7 @@ func reset(level: int) -> void:
 	# A repeated level must play exactly like the one that was measured.
 	var layout := LevelGen.layout_level(level)
 	speed = B.speed_for(layout)
-	_load(LevelGen.generate(layout), 1)
+	_load(LevelGen.generate(layout), start_soldiers)
 	rng.seed = layout
 
 
@@ -209,7 +213,7 @@ func tick(dt: float) -> void:
 
 	fire_timer -= dt
 	if fire_timer <= 0.0:
-		fire_timer += B.FIRE_INTERVAL
+		fire_timer += B.FIRE_INTERVAL / rate_mult
 		_fire()
 
 	_update_bullets(dt)
@@ -225,7 +229,7 @@ func tick(dt: float) -> void:
 func _fire() -> void:
 	var shown := mini(soldiers, B.MAX_SHOWN)
 	var shooters := mini(soldiers, B.MAX_SHOOTERS)
-	var dmg := float(soldiers) / shooters
+	var dmg := float(soldiers) / shooters * damage_mult
 	fx.append(["volley"])
 	for i in shooters:
 		if b_count >= B.MAX_BULLETS:
