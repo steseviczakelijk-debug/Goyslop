@@ -1,89 +1,76 @@
-# Masterplan Bowbridge: Archer Legion
+# Bowbridge: Archer Legion – roadmap
 
-Doel: een spel dat je niet weg wilt leggen. Eerst het spel eerlijk maken, dan de
-beloningen erbovenop. Alles met gratis munten en advertenties; geen betaalde
-gokelementen, geen misleiding, niet gericht op kinderen onder de 13.
+Goal: a game people do not want to put down. Order: make playing fair, make
+winning feel great, give coins a purpose, add surprise, add reasons to return,
+then measure before investing further.
 
-Werkafspraak: er wordt alleen gebouwd waar uitdrukkelijk akkoord op is gegeven,
-per stap. Voor alles wat een plaatje is eerst prompts; beweging gaat in code.
+Rules of the road
+- Build only what the maker has explicitly approved, one step at a time.
+- Art comes from the maker via prompts; motion is done in code.
+- Free coins and ads only. No paid random rewards, no fake timers or rigged
+  near-misses, shown odds are the real odds, audience 13+.
+- After any change to game rules: run `scripts/calibrate.gd`, then `scripts/bench.gd`.
 
-## Stap 1 – Eerlijk spel (gedaan)
-Goed spelen wordt beloond en verliezen is mogelijk.
-- [x] Elk level is gebouwd rond één perfecte route. `scripts/calibrate.gd` speelt
-      die route per level vooraf en legt in `scripts/level_table.gd` vast hoe
-      zwaar de golven mogen zijn en hoe groot het perfecte leger bij de trol is.
-      Na elke wijziging aan de spelregels opnieuw draaien.
-- [x] De trol is zo sterk dat je hem verslaat met een leger tot 28% onder het
-      perfecte (`ALLOWED_DEVIATION`); dat percentage is afgesteld op de
-      gemiddelde bot.
-- [x] Poortkeuzes liggen dicht bij elkaar (plus tegen plus, x2 tegen een plus
-      die bijna evenveel oplevert, soms twee rode poorten).
-- [x] Poorten hebben geen maximum; elke volgende stap kost 30% meer treffers.
-- [x] Tempo loopt vanaf level 3 met 3% per level op, tot hooguit 1,4 keer.
-- [x] Level 1 en 2 zijn leerlevels. Na level 100 herhalen de levels 21–100.
-- [x] Gemeten (`scripts/bench.gd`): perfecte bot wint alle levels 1–260;
-      gemiddelde bot 79% op level 1–30 en 76% op 31–100; slechte bot 15%.
+## Done
+1. Fair game – levels built around one measured perfect route; troll sized so
+   an army up to 28% below perfect still wins; close gate choices; pace rises
+   to 1.4x; gates grow without a cap but cost more per step. Measured: perfect
+   bot wins every level to 260, average bot about 3 in 4, weak bot about 1 in 7.
+2. Win moment – stars against the perfect army, coins counting up with a rising
+   tone, an honest reward wheel (x1–x5), continue button only afterwards.
 
-## Stap 2 – Winstmoment (gedaan, art nog tijdelijk)
-Elke overwinning voelt als een prijs.
-- [x] Sterren naar legergrootte: 3 bij minstens 85% van het perfecte leger, 2 bij
-      60%, anders 1.
-- [x] Munten tellen op met een oplopende toon.
-- [x] Rad na de baas (x1 x2 x1 x3 x2 x1 x4 x5, elk vak even waarschijnlijk);
-      tikken om te draaien; de bonus wordt bij je munten geteld.
-- [x] De knop "volgende level" verschijnt pas na het rad.
-- [x] Art: sterren, rand, naaf, wijzer en draaiende lichtstralen. De vakken en
-      getallen van het rad blijven in code.
+## Next, in order
+3. Upgrades (give coins a purpose)
+   Start army, damage, fire rate, coin bonus; rising prices; an always-visible
+   bar to the next affordable upgrade; upgrade screen between levels.
+   Triggers: goal gradient, visible growth, "one more level and I can afford it".
+   Art: four upgrade icons, upgrade card, "upgrade" button badge.
+   Done when: after every level there is something to buy or nearly buy, and
+   calibration accounts for upgrades so levels stay winnable and not trivial.
 
-## Stap 3 – Verrassingen
-Tijdens het level gebeurt iets onverwachts.
-- Gouden ork (zeldzaam, muntenregen); schatkist met willekeurige inhoud; ton met
-  teller; af en toe een jackpot-poort.
-- Art: gouden ork (drie poses), kapotte ton, schatkist, jackpot-banier. De ton
-  zelf is binnen.
-- Geslaagd als elk level minstens één ding heeft dat het vorige niet had.
+4. Surprises (things to shoot)
+   Barrel with a counter, treasure chest with a random coin amount, rare golden
+   orc that showers coins, gates for fire rate and damage.
+   Triggers: variable reward, surprise, a choice of what to aim at.
+   Art: broken barrel, chest, golden orc (3 poses), gate icons.
+   Done when: every level contains at least one thing the previous one lacked.
 
-## Stap 4 – Reeksen
-Doorspelen loont.
-- Combo-teller bij snel achter elkaar gedode orks, met steeds hoger geluid en een
-  bonus; winstreeks over levels met een groeiende vermenigvuldiger.
-- Art: combo-badge, vlam-icoon.
+5. Streaks and near-misses
+   Kill-combo counter with rising pitch and a coin bonus; win streak that raises
+   the wheel's values and is lost on defeat; defeat screen showing the real
+   distance to victory ("troll had 4% left") with retry as the big button.
+   Triggers: momentum, loss aversion, near-miss, instant retry.
+   Art: combo badge, streak flame.
 
-## Stap 5 – Vooruitgang
-Altijd iets dat bijna af is.
-- Upgrades voor munten (startleger, schade, vuursnelheid, muntenbonus); kaart met
-  werelden; balk naar de volgende beloning; vrij te spelen skins.
-- Art: upgrade-iconen, kaart, tweede wereld, twee of drie skins.
+6. Reasons to return
+   Seven-day daily reward, a chest that fills while away (capped), three daily
+   missions, opt-in notification when the chest is full.
+   Triggers: appointment, streak, unfinished goals.
+   Art: calendar, chest closed/open, mission card.
 
-## Stap 6 – Terugkomen
-Een reden om morgen weer te openen.
-- Dagelijkse beloning die oploopt over zeven dagen; kist die na vier uur opengaat;
-  melding als hij klaar is (alleen met toestemming).
-- Art: kalender met zeven vakjes, kist dicht en open.
+7. Measure (decision gate)
+   Analytics (level drop-off, session length, day-1 and day-7 return), release
+   signing, privacy policy, closed test with 12 testers for 14 days, and a small
+   ad test (three videos, 50–100 euro) for cost per install.
+   Go on only if roughly 35% return after a day, 10% after seven days and an
+   install costs under about 0.30 euro. Otherwise fix the leaking step or stop.
 
-## Stap 7 – Verlies ombuigen
-Verlies leidt tot "nog één keer".
-- Verliesscherm dat toont hoe dichtbij je was (altijd het echte getal); "doorgaan
-  met je leger" en "dubbele beloning" via een advertentie; "opnieuw" als grootste
-  knop.
-- Nodig: AdMob-account, advertentie-icoon.
+8. Depth (only after the gate)
+   One hero archer with a skill, upgraded with coins and tokens from chests (no
+   paid random pulls); second world with its own bridge, enemies and boss; a
+   map; skins to collect.
+   Triggers: attachment, novelty, collection.
 
-## Stap 8 – Meten en bijstellen
-- Meten: op welk level mensen afhaken, sessieduur, terugkeer na 1 en 7 dagen,
-  gebruik van rad en advertenties.
-- Nodig: 12 testers voor de gesloten Play Store-test, privacybeleid.
-- Streefwaarden: 35% terug na één dag, 10% na zeven dagen.
+9. Earning and soft launch
+   Rewarded ads only where the player asks for them: spin the wheel again,
+   continue with your army, fill the chest faster; interstitials from level 5 at
+   most every third level; one "no ads" purchase. Soft launch in a few
+   countries, then scale or approach a publisher with the numbers.
 
-## Stand van het spel
-- Godot 4.5, Android, portret. Code opgedeeld in scripts/ (zie README).
-- Inhoud: boogschutters (vier poses plus vallen), orks, gepantserde orks vanaf
-  level 3 (vijf poses), trol met loop, uithaal, klap en ineenkrimpen.
-- Effecten, geluid (gesynthetiseerd, tijdelijk), trillen, menu met instellingen.
-- Lettertype Lilita One (Open Font License, assets/fonts/OFL.txt).
-- Afgewezen: water langs de hele brug.
-- Open beslissingen van de maker: lettertype, verborgen fps-teller en iets doffer
-  gras zijn zonder akkoord ingebouwd; blijven of terug.
-
-## Later (buiten dit plan)
-Release-ondertekening en Play Store-pagina, echte geluiden in plaats van
-gesynthetiseerde, iPhone-versie, meer talen.
+## State of the game
+Godot 4.5, Android, portrait; code split under scripts/ (see README). Content:
+archers (4 poses + fall), orcs, armored orcs from level 3 (5 poses), troll with
+walk, wind-up, smash and flinch. Effects, synthesised placeholder sound, haptics,
+pause menu with settings, Lilita One font (OFL). Rejected: water along the
+bridge. Still open from the maker: keep or revert the font, the hidden fps
+readout and the slightly calmer grass. Barrel art is in but unused.
