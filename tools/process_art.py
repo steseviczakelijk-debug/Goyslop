@@ -219,6 +219,8 @@ def main():
     # Upgrades, daily reward and start screen
     sprite("47_up_army.png", "ui_up_army.png", height=160)
     sprite("48_up_damage.png", "ui_up_damage.png", height=160)
+    sprite("49_up_rate.png", "ui_up_rate.png", height=160)
+    sprite("50_up_coins.png", "ui_up_coins.png", height=160)
     sprite("51_up_card.png", "ui_card.png", width=768)
     sprite("52_dot.png", "ui_dot.png", height=96)
     sprite("61_daily_panel.png", "ui_daily_panel.png", width=640)

@@ -62,8 +62,8 @@ const BOSS_SMASH_MIN := 4
 const UPGRADES := [
 	{"key": "up_army", "name": "ARMY", "icon": "res://assets/ui_up_army.png", "base": 150, "step": 1.0, "text": "Start with %d archers"},
 	{"key": "up_damage", "name": "DAMAGE", "icon": "res://assets/ui_up_damage.png", "base": 200, "step": 0.05, "text": "Arrow damage +%d%%"},
-	{"key": "up_rate", "name": "FIRE RATE", "icon": "res://assets/arrow.png", "base": 200, "step": 0.03, "text": "Fire rate +%d%%"},
-	{"key": "up_coins", "name": "COINS", "icon": "res://assets/coin.png", "base": 250, "step": 0.1, "text": "Coins earned +%d%%"},
+	{"key": "up_rate", "name": "FIRE RATE", "icon": "res://assets/ui_up_rate.png", "base": 200, "step": 0.03, "text": "Fire rate +%d%%"},
+	{"key": "up_coins", "name": "COINS", "icon": "res://assets/ui_up_coins.png", "base": 250, "step": 0.1, "text": "Coins earned +%d%%"},
 ]
 const UPGRADE_PRICE_GROWTH := 1.45
 const UPGRADE_MAX_LEVEL := 25
