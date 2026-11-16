@@ -17,9 +17,12 @@ static func generate(level: int, tune := {}) -> Dictionary:
 	# their ceiling by then, so a repeated level plays exactly as measured.
 	var lv := layout_level(level)
 	if tune.is_empty() and Table.DATA.has(lv):
-		tune = {"waves": Table.DATA[lv][0], "army": Table.DATA[lv][1]}
+		tune = {"waves": Table.DATA[lv][0], "army": Table.DATA[lv][1], "boss_max": Table.DATA[lv][2]}
 	var wave_scale: float = tune.get("waves", 1.0)
 	var rng := RandomNumberGenerator.new()
+	# Extras draw from their own generator so they never shift the layout.
+	var extra := RandomNumberGenerator.new()
+	extra.seed = 104729 * lv + 7
 	rng.seed = 7919 * lv + 13
 	var events: Array = []
 	var est := 1.0  # army size a player who picks well should have by now
@@ -55,9 +58,20 @@ static func generate(level: int, tune := {}) -> Dictionary:
 			other = {"op": "add", "value": clampi(int(round(v * rng.randf_range(0.6, 0.9))), 1, maxi(1, v - 1))}
 			# The perfect player also shoots the gate up on the way in.
 			est += v + maxi(1, int(round(v * B.GATE_STEP_SHARE))) * _expected_steps(est, lv)
+		# Sometimes the lesser gate offers a different kind of power instead.
+		if lv >= B.BUFF_GATES_FROM_LEVEL and best.op == "add" and best.value > 0 and extra.randf() < B.BUFF_GATE_CHANCE:
+			other = {"op": "rate" if extra.randf() < 0.5 else "dmg", "value": B.BUFF_GATE_PERCENT}
 		var flip := rng.randf() < 0.5
 		events.append({"s": s, "type": "gates", "left": other if flip else best, "right": best if flip else other})
 		s += B.SEGMENT_GAP
+		if lv >= B.PROPS_FROM_LEVEL and i >= 1 and extra.randf() < B.PROP_CHANCE:
+			var chest := extra.randf() < B.CHEST_SHARE
+			events.append({
+				"s": s - B.SEGMENT_GAP * 0.5, "type": "prop", "kind": "chest" if chest else "barrel",
+				"x": (-1.0 if extra.randf() < 0.5 else 1.0) * 2.2,
+				"hp": maxf(3.0, est * (B.CHEST_HP if chest else B.BARREL_HP)),
+				"reward": extra.randi_range(30, 90) + lv * 5 if chest else maxi(2, int(est * B.BARREL_REWARD)),
+			})
 
 		# Armored orcs take more arrows, so a wave that has them is smaller.
 		# A small army fires few arrows, so the opening waves are lighter and
@@ -75,7 +89,8 @@ static func generate(level: int, tune := {}) -> Dictionary:
 				x1 = -0.3
 			else:
 				x0 = 0.3
-		events.append({"s": s, "type": "wave", "count": count, "hp": hp, "x0": x0, "x1": x1, "armored": int(round(count * tough))})
+		events.append({"s": s, "type": "wave", "count": count, "hp": hp, "x0": x0, "x1": x1, "armored": int(round(count * tough)),
+			"gold": extra.randi() % count if lv >= B.GOLD_FROM_LEVEL and extra.randf() < B.GOLD_CHANCE else -1})
 		var per_row := int((x1 - x0) / B.ENEMY_SPACING) + 1
 		s += B.SEGMENT_GAP + ceilf(float(count) / per_row) * B.ENEMY_SPACING
 	s += 8.0
@@ -84,7 +99,14 @@ static func generate(level: int, tune := {}) -> Dictionary:
 	var army: float = tune.get("army", 0.0)
 	if army <= 0.0:
 		army = est * B.PERFECT_KEEPS
-	events.append({"s": s, "type": "boss", "hp": army * B.BOSS_HP_PER_SOLDIER * (1.0 - B.ALLOWED_DEVIATION) * ease, "est": est, "army": army})
+	# "boss_max" is the toughest troll the perfect route can still beat; the
+	# real one is that much weaker than ALLOWED_DEVIATION says.
+	var hp: float = army * B.BOSS_HP_PER_SOLDIER * (1.0 - B.ALLOWED_DEVIATION) * ease
+	if tune.has("boss_hp"):
+		hp = tune.boss_hp
+	elif tune.has("boss_max"):
+		hp = tune.boss_max * (1.0 - B.ALLOWED_DEVIATION) * ease
+	events.append({"s": s, "type": "boss", "hp": hp, "est": est, "army": army})
 	return {"events": events, "length": s}
 
 

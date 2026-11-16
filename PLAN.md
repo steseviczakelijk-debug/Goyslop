@@ -19,7 +19,7 @@ Rules of the road
 2. Win moment – stars against the perfect army, coins counting up with a rising
    tone, an honest reward wheel (x1–x5), continue button only afterwards.
 
-3. Upgrades (built; balance check pending) – army, damage, fire
+3. Upgrades (built) – army, damage, fire
    rate and coin bonus, bought on the start screen; prices rise 45% per level,
    25 levels each. After a win the game returns to the start screen. Not yet measured: how much upgrades ease the
    calibrated levels.
@@ -28,29 +28,21 @@ Rules of the road
 Also built: logo and tutorial hand on the start screen. Stored, unused: store
 banner (store/feature_graphic.png), hero archer (one pose).
 
+4. Surprises (built) – barrels that free soldiers and chests with a random
+   coin amount (from level 3), a rare golden orc worth 60 coins (from level 2),
+   and gates that give +25% fire rate or damage for the level (from level 4).
+5. Streaks and near-misses (built) – kill combo with rising pitch and a coin
+   bonus, win streak that adds +1 to the wheel per three wins (max +2), defeat
+   screen showing the troll's remaining health or how far you got.
+8a. Hero archer (built early, from step 8) – joins from level 5 and fires a
+   burst of five heavy arrows every four seconds. No upgrades for him yet.
+Balance after these: perfect bot wins every level to 260; average bot 77% on
+levels 1–30 and 76% on 31–100; weak bot 17%. Calibration now also measures,
+per level, the toughest troll the perfect route can beat; the real troll is
+15% weaker (ALLOWED_DEVIATION). Bots do not use upgrades or the hero, so real
+players have it somewhat easier; not yet measured how much.
+
 ## Next, in order
-3. Upgrades (give coins a purpose)
-   Start army, damage, fire rate, coin bonus; rising prices; an always-visible
-   bar to the next affordable upgrade; upgrade screen between levels.
-   Triggers: goal gradient, visible growth, "one more level and I can afford it".
-   Art: four upgrade icons, upgrade card, "upgrade" button badge.
-   Done when: after every level there is something to buy or nearly buy, and
-   calibration accounts for upgrades so levels stay winnable and not trivial.
-
-4. Surprises (things to shoot)
-   Barrel with a counter, treasure chest with a random coin amount, rare golden
-   orc that showers coins, gates for fire rate and damage.
-   Triggers: variable reward, surprise, a choice of what to aim at.
-   Art: broken barrel, chest, golden orc (3 poses), gate icons.
-   Done when: every level contains at least one thing the previous one lacked.
-
-5. Streaks and near-misses
-   Kill-combo counter with rising pitch and a coin bonus; win streak that raises
-   the wheel's values and is lost on defeat; defeat screen showing the real
-   distance to victory ("troll had 4% left") with retry as the big button.
-   Triggers: momentum, loss aversion, near-miss, instant retry.
-   Art: combo badge, streak flame.
-
 6. Reasons to return
    Seven-day daily reward, a chest that fills while away (capped), three daily
    missions, opt-in notification when the chest is full.
@@ -65,8 +57,8 @@ banner (store/feature_graphic.png), hero archer (one pose).
    install costs under about 0.30 euro. Otherwise fix the leaking step or stop.
 
 8. Depth (only after the gate)
-   One hero archer with a skill, upgraded with coins and tokens from chests (no
-   paid random pulls); second world with its own bridge, enemies and boss; a
+   Hero upgrades with coins and tokens from chests (no paid random pulls);
+   second world with its own bridge, enemies and boss; a
    map; skins to collect.
    Triggers: attachment, novelty, collection.
 

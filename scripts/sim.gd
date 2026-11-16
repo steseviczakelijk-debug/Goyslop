@@ -22,7 +22,22 @@ class Gate:
 	var pair: int
 
 	func apply(n: int) -> int:
-		return n * value if op == "mul" else n + value
+		if op == "mul":
+			return n * value
+		if op == "add":
+			return n + value
+		return n  # "rate" and "dmg" gates change how you shoot, not how many you are
+
+
+## Something on the road worth shooting: a barrel that frees soldiers or a
+## chest full of coins.
+class Prop:
+	var id: int
+	var kind: String
+	var x: float
+	var z: float
+	var hp: float
+	var reward: int
 
 
 var soldiers := 1
@@ -34,6 +49,12 @@ var scroll := 0.0
 var speed := 1.0   # pace of this level, see Balance.speed_for
 # Bought upgrades, set by the game before a level starts.
 var start_soldiers := 1
+var hero := false          # the hero archer marches with the squad
+var hero_timer := 0.0
+var level_rate := 1.0      # from gates, for this level only
+var level_dmg := 1.0
+var props: Array = []
+var next_prop_id := 0
 var damage_mult := 1.0
 var rate_mult := 1.0
 var fire_timer := 0.0
@@ -43,7 +64,8 @@ var outcome := 0  # 0 while playing, 1 on win, -1 on loss
 ## What happened this tick, for the view and audio to react to. Each entry is
 ## [kind, ...]: ["volley"], ["shot", slot], ["hit"], ["kill", x, z, armored], ["lost", x, z, count],
 ## ["gate", x, gained, good], ["grow", gate_id], ["boss_hit"], ["boss_dead", x, z],
-## ["windup"], ["smash", x, z, hit], ["chop", x, z].
+## ["windup"], ["smash", x, z, hit], ["chop", x, z], ["prop_break", kind, x, z,
+## reward], ["hero_shot"]. A gate entry may carry a fifth item: text to show.
 var fx: Array = []
 var coins_earned := 0
 
@@ -131,6 +153,10 @@ func _load(data: Dictionary, start_soldiers: int) -> void:
 	events = data.events
 	level_length = data.length
 	gates.clear()
+	props.clear()
+	level_rate = 1.0
+	level_dmg = 1.0
+	hero_timer = B.HERO_INTERVAL
 	e_count = 0
 	b_count = 0
 	boss_active = false
@@ -159,7 +185,18 @@ func _spawn(ev: Dictionary) -> void:
 			_spawn_gate(ev.left, -B.ROAD_HALF, 0.0, z)
 			_spawn_gate(ev.right, 0.0, B.ROAD_HALF, z)
 			next_pair += 1
+		"prop":
+			var p := Prop.new()
+			p.id = next_prop_id
+			next_prop_id += 1
+			p.kind = ev.kind
+			p.x = ev.x
+			p.z = z
+			p.hp = ev.hp
+			p.reward = ev.reward
+			props.append(p)
 		"wave":
+			var gold_at: int = ev.get("gold", -1)
 			var per_row := int((ev.x1 - ev.x0) / B.ENEMY_SPACING) + 1
 			var armored: int = ev.get("armored", 0)
 			var stride := maxi(1, ev.count / maxi(armored, 1))
@@ -175,6 +212,9 @@ func _spawn(ev: Dictionary) -> void:
 				e_armored[e_count] = 1 if tough else 0
 				e_hp[e_count] = ev.hp * (B.ARMORED_HP if tough else 1.0)
 				e_cost[e_count] = int(ceilf(ev.hp)) * B.ARMORED_COST
+				if i == gold_at:
+					e_armored[e_count] = 2
+					e_hp[e_count] = ev.hp * B.GOLD_HP
 				e_attack[e_count] = 0.0
 				e_flash[e_count] = 0.0
 				e_count += 1
@@ -213,10 +253,16 @@ func tick(dt: float) -> void:
 
 	fire_timer -= dt
 	if fire_timer <= 0.0:
-		fire_timer += B.FIRE_INTERVAL / rate_mult
+		fire_timer += B.FIRE_INTERVAL / (rate_mult * level_rate)
 		_fire()
+	if hero:
+		hero_timer -= dt
+		if hero_timer <= 0.0:
+			hero_timer = B.HERO_INTERVAL
+			_hero_burst()
 
 	_update_bullets(dt)
+	_update_props(dt)
 	_update_enemies(dt)
 	_update_gates(dt)
 	_update_boss(dt)
@@ -229,7 +275,7 @@ func tick(dt: float) -> void:
 func _fire() -> void:
 	var shown := mini(soldiers, B.MAX_SHOWN)
 	var shooters := mini(soldiers, B.MAX_SHOOTERS)
-	var dmg := float(soldiers) / shooters * damage_mult
+	var dmg := float(soldiers) / shooters * damage_mult * level_dmg
 	fx.append(["volley"])
 	for i in shooters:
 		if b_count >= B.MAX_BULLETS:
@@ -242,6 +288,34 @@ func _fire() -> void:
 		b_dmg[b_count] = dmg
 		b_left[b_count] = B.BULLET_RANGE
 		b_count += 1
+
+
+## The hero looses a fan of heavy arrows from the front of the squad.
+func _hero_burst() -> void:
+	for k in B.HERO_ARROWS:
+		if b_count >= B.MAX_BULLETS:
+			break
+		b_x[b_count] = clampf(squad_x + (k - (B.HERO_ARROWS - 1) * 0.5) * 0.4, -B.ROAD_HALF + 0.1, B.ROAD_HALF - 0.1)
+		b_z[b_count] = -squad_r - 0.7
+		b_dmg[b_count] = soldiers * B.HERO_POWER * damage_mult * level_dmg
+		b_left[b_count] = B.BULLET_RANGE
+		b_count += 1
+	fx.append(["hero_shot"])
+
+
+func _update_props(dt: float) -> void:
+	var kept: Array = []
+	for p in props:
+		p.z += scroll * dt
+		if p.hp <= 0.0:
+			if p.kind == "barrel":
+				soldiers = mini(soldiers + p.reward, B.MAX_SOLDIERS)
+			else:
+				coins_earned += p.reward
+			fx.append(["prop_break", p.kind, p.x, p.z, p.reward])
+		elif p.z < 4.0:
+			kept.append(p)
+	props = kept
 
 
 func _update_bullets(dt: float) -> void:
@@ -274,6 +348,14 @@ func _update_bullets(dt: float) -> void:
 				dmg = 0.0
 				break
 
+		if dmg > 0.0:
+			for p in props:
+				if p.hp > 0.0 and absf(x - p.x) < B.PROP_R and p.z <= z_old + 0.5 and p.z >= z_new - 0.5:
+					p.hp -= minf(dmg, p.hp)
+					any_hit = true
+					dmg = 0.0
+					break
+
 		if dmg > 0.0 and boss_active and absf(x - boss_x) < B.BOSS_R and boss_z <= z_old + 1.0 and boss_z >= z_new - 1.0:
 			boss_hp -= dmg
 			boss_flash = 1.0
@@ -290,7 +372,7 @@ func _update_bullets(dt: float) -> void:
 						e_flash[j] = 1.0
 						any_hit = true
 						if e_hp[j] <= 0.0:
-							fx.append(["kill", e_x[j], e_z[j], e_armored[j] == 1])
+							fx.append(["kill", e_x[j], e_z[j], e_armored[j]])
 						dmg -= d
 						if dmg <= 0.001:
 							break
@@ -319,7 +401,7 @@ func _update_enemies(dt: float) -> void:
 	while i < e_count:
 		var remove := e_hp[i] <= 0.0
 		if remove:
-			coins_earned += B.ARMORED_COINS if e_armored[i] == 1 else B.COINS_PER_KILL
+			coins_earned += [B.COINS_PER_KILL, B.ARMORED_COINS, B.GOLD_COINS][e_armored[i]]
 		elif e_attack[i] > 0.0:
 			# An armored orc at the squad stands his ground, raises his axe and
 			# strikes. Shooting him down before the blow lands saves the soldiers.
@@ -339,7 +421,9 @@ func _update_enemies(dt: float) -> void:
 				x = move_toward(x, squad_x, steer)
 				e_x[i] = x
 			e_z[i] = z
-			if z > -squad_r - B.ENEMY_R and absf(x - squad_x) < squad_r + B.ENEMY_R and e_armored[i] == 1:
+			if z > -squad_r - B.ENEMY_R and absf(x - squad_x) < squad_r + B.ENEMY_R and e_armored[i] == 2:
+				remove = true  # the golden orc only wants to get away
+			elif z > -squad_r - B.ENEMY_R and absf(x - squad_x) < squad_r + B.ENEMY_R and e_armored[i] == 1:
 				e_attack[i] = B.ARMORED_ATTACK
 			elif z > -squad_r - B.ENEMY_R and absf(x - squad_x) < squad_r + B.ENEMY_R:
 				var cost := int(ceilf(e_hp[i]))
@@ -368,8 +452,16 @@ func _update_gates(dt: float) -> void:
 		g.z += scroll * dt
 		if g.z >= -0.2 and squad_x >= g.x0 and squad_x < g.x1:
 			var before := soldiers
-			soldiers = clampi(g.apply(soldiers), 0, B.MAX_SOLDIERS)
-			fx.append(["gate", (g.x0 + g.x1) * 0.5, soldiers - before, soldiers >= before])
+			var note := ""
+			if g.op == "rate":
+				level_rate *= 1.0 + g.value / 100.0
+				note = "FIRE RATE +%d%%" % g.value
+			elif g.op == "dmg":
+				level_dmg *= 1.0 + g.value / 100.0
+				note = "DAMAGE +%d%%" % g.value
+			else:
+				soldiers = clampi(g.apply(soldiers), 0, B.MAX_SOLDIERS)
+			fx.append(["gate", (g.x0 + g.x1) * 0.5, soldiers - before, soldiers >= before, note])
 			taken = g.pair
 	if taken >= 0 or (not gates.is_empty() and gates[0].z > 4.0):
 		var drop: int = taken if taken >= 0 else gates[0].pair

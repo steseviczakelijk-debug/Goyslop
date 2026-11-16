@@ -216,6 +216,18 @@ def main():
     sprite("22_button.png", "ui_button.png", width=768)
     sprite("23_coin.png", "coin.png", height=128)
 
+    # Things to shoot, the golden orc, the hero, combo and streak
+    sprite("44a_barrel.png", "barrel.png", height=256)
+    sprite("44b_barrel_broken.png", "barrel_broken.png", height=200)
+    sprite("53_chest_closed.png", "chest.png", height=256)
+    sprite("54_chest_open.png", "chest_open.png", height=256)
+    pose_sheet([load("55a_gold_orc.png"), load("55b_gold_orc_step.png")], "gold_orc.png", 256)
+    sprite("55c_gold_orc_fall.png", "gold_orc_fall.png", height=256)
+    pose_sheet([load("67_hero_aim.png"), load("67b_hero_shot.png"), load("67c_hero_step.png"),
+                load("67d_hero_cheer.png")], "hero.png", 384)
+    sprite("56_combo_badge.png", "ui_combo.png", height=192)
+    sprite("57_streak_flame.png", "ui_flame.png", height=128)
+
     # Upgrades, daily reward and start screen
     sprite("47_up_army.png", "ui_up_army.png", height=160)
     sprite("48_up_damage.png", "ui_up_damage.png", height=160)

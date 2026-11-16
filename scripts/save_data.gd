@@ -9,6 +9,7 @@ const VERSION := 3
 const FIELDS := {
 	"level": ["progress", 1],
 	"coins": ["progress", 0],
+	"win_streak": ["progress", 0],
 	"up_army": ["upgrades", 0],
 	"up_damage": ["upgrades", 0],
 	"up_rate": ["upgrades", 0],

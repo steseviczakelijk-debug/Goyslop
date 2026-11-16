@@ -27,6 +27,10 @@ var buzz_ready := 0.0
 var paused := false
 var panel_open := false   # upgrades or daily reward is covering the game
 var daily_index := -1     # today's unclaimed reward, or -1
+var combo := 0            # kills in quick succession
+var combo_timer := 0.0
+var combo_bonus := 0      # coins earned by combos this level
+var kill_sound_at := 0.0
 var settings := {}
 var slowmo := 0.0          # real seconds of slow motion left
 var overlay_delay := -1.0  # real seconds until the win/lose panel appears
@@ -130,11 +134,14 @@ func _reset_level() -> void:
 	else:
 		sim.reset(level)
 	state = State.MENU
+	combo = 0
+	combo_bonus = 0
+	hud.set_combo(0)
 	bot.reset()
 	world.end_celebration()
 	hud.set_level(level)
 	hud.show_overlay("", "PLAY", "")
-	hud.meta.show_start(_can_buy_any(), level <= 2)
+	hud.meta.show_start(_can_buy_any(), level <= 2, 0 if autoplay else settings.win_streak)
 
 
 func _start() -> void:
@@ -169,11 +176,12 @@ func _apply_upgrades() -> void:
 	sim.start_soldiers = 1 + int(levels[0] * B.UPGRADES[0].step)
 	sim.damage_mult = 1.0 + levels[1] * B.UPGRADES[1].step
 	sim.rate_mult = 1.0 + levels[2] * B.UPGRADES[2].step
+	sim.hero = level >= B.HERO_FROM_LEVEL
 
 
 ## Coins of the running level, including the coin-bonus upgrade.
 func _earned() -> int:
-	return int(sim.coins_earned * (1.0 + _upgrade_levels()[3] * B.UPGRADES[3].step))
+	return int((sim.coins_earned + combo_bonus) * (1.0 + _upgrade_levels()[3] * B.UPGRADES[3].step))
 
 
 func _can_buy_any() -> bool:
@@ -232,7 +240,7 @@ func _claim_daily() -> void:
 	buzz_ready = 0.0
 	_buzz(60)
 	hud.meta.hide_daily()
-	hud.meta.show_start(_can_buy_any(), level <= 2)
+	hud.meta.show_start(_can_buy_any(), level <= 2, 0 if autoplay else settings.win_streak)
 
 
 func _restart() -> void:
@@ -327,6 +335,7 @@ func _process(dt: float) -> void:
 		sim.tick(dt)
 		world.apply_fx(sim)
 		_play_fx()
+		_update_combo(dt)
 		for at in world.coin_flights:
 			hud.fly_coin(at)
 		world.coin_flights.clear()
@@ -355,7 +364,25 @@ func _play_fx() -> void:
 			"hit":
 				_buzz(12, 0.07)
 			"kill":
-				audio.play("kill", -8.0, 0.05, 0.2)
+				combo += 1
+				combo_timer = B.COMBO_WINDOW
+				if time - kill_sound_at > 0.05:
+					# The pitch climbs with the combo.
+					kill_sound_at = time
+					audio.play_pitched("kill", -8.0, 0.9 + minf(combo, 200) * 0.004)
+				if e[3] == 2:
+					audio.play_pitched("win", -2.0, 1.5)
+					buzz_ready = 0.0
+					_buzz(80)
+			"prop_break":
+				if e[1] == "chest":
+					audio.play_pitched("win", -4.0, 1.3)
+				else:
+					audio.play_pitched("gate_good", -2.0, 0.8)
+				buzz_ready = 0.0
+				_buzz(50)
+			"hero_shot":
+				audio.play_pitched("shoot", -2.0, 0.6)
 			"lost":
 				audio.play("lost", -4.0, 0.12)
 				buzz_ready = 0.0
@@ -386,6 +413,22 @@ func _play_fx() -> void:
 		_buzz(20)
 
 
+## Ends a combo when the kills stop coming, paying a small coin bonus.
+func _update_combo(dt: float) -> void:
+	hud.set_combo(combo)
+	if combo == 0:
+		return
+	combo_timer -= dt
+	if combo_timer <= 0.0 or state != State.PLAY:
+		if combo >= B.COMBO_MIN:
+			var bonus := combo / B.COMBO_PER_COIN
+			combo_bonus += bonus
+			hud.combo_done(combo, bonus)
+			audio.play_pitched("coin", -6.0, 1.4)
+		combo = 0
+		hud.set_combo(0)
+
+
 ## Phone vibration. `gap` is the minimum time before the next one may start, so
 ## a hail of arrows ticks steadily instead of buzzing without pause.
 func _buzz(ms: int, gap := 0.12) -> void:
@@ -404,7 +447,8 @@ func _run_timers(real_dt: float) -> void:
 		overlay_delay -= real_dt
 		if overlay_delay < 0.0:
 			if state == State.WIN:
-				hud.show_win(win_stars, win_earned, level * 7919 + coins)
+				var boost := 0 if autoplay else mini(settings.win_streak / B.STREAK_PER_BOOST, B.STREAK_MAX_BOOST)
+				hud.show_win(win_stars, win_earned, level * 7919 + coins, boost)
 			else:
 				hud.show_overlay.callv(overlay_args)
 
@@ -428,7 +472,15 @@ func _finish(win: bool) -> void:
 		audio.play("lose", 0.0, 0.0, 0.0)
 		buzz_ready = 0.0
 		_buzz(120)
-	overlay_args = ["VICTORY" if win else "DEFEAT", "NEXT LEVEL" if win else "RETRY", ""]
+	_update_combo(0.0)  # a combo still running is paid out now
+	# Defeat shows honestly how close it was.
+	var close := ""
+	if not win:
+		if sim.boss_active:
+			close = "The troll had %d%% health left" % maxi(1, int(ceilf(100.0 * sim.boss_hp / sim.boss_max)))
+		else:
+			close = "You made it %d%% of the way" % int(sim.progress() * 100.0)
+	overlay_args = ["VICTORY" if win else "DEFEAT", "NEXT LEVEL" if win else "RETRY", close]
 	if autoplay:
 		hud.show_overlay.callv(overlay_args)
 	else:
@@ -450,6 +502,8 @@ func _finish(win: bool) -> void:
 		win_earned = 0
 	else:
 		coins += _earned()
+		if not autoplay:
+			settings.win_streak = settings.win_streak + 1 if win else 0
 		if win:
 			level += 1
 		_save()

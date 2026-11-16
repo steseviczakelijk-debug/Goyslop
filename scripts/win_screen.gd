@@ -12,7 +12,7 @@ signal finished(multiplier: int)
 enum Phase { IDLE, INTRO, WAIT_SPIN, SPINNING, BONUS, DONE }
 
 const SEGMENTS := [1, 2, 1, 3, 2, 1, 4, 5]
-const COLORS := {1: Color(0.16, 0.36, 0.86), 2: Color(0.2, 0.62, 0.3), 3: Color(0.93, 0.6, 0.1), 4: Color(0.84, 0.22, 0.2), 5: Color(0.6, 0.25, 0.8)}
+const COLORS := {1: Color(0.16, 0.36, 0.86), 2: Color(0.2, 0.62, 0.3), 3: Color(0.93, 0.6, 0.1), 4: Color(0.84, 0.22, 0.2), 5: Color(0.6, 0.25, 0.8), 6: Color(0.1, 0.65, 0.7), 7: Color(0.9, 0.3, 0.6)}
 const GOLD := Color(1.0, 0.8, 0.15)
 const INK := Color(0.05, 0.1, 0.3)
 
@@ -32,6 +32,7 @@ var mult_label: Label
 var sequence: Tween
 var last_segment := 0
 var rng := RandomNumberGenerator.new()
+var segments: Array = SEGMENTS   # the wheel's values, raised by a win streak
 
 
 class Wheel extends Control:
@@ -103,7 +104,7 @@ func _ready() -> void:
 	pointer.pivot_offset = Vector2(26, 14)  # it swings around its gold cap
 
 	prompt = _label(40, self)
-	_place(prompt, Vector2(0, 420), Vector2(600, 56))
+	_place(prompt, Vector2(0, 436), Vector2(600, 96))
 	prompt.text = "TAP TO SPIN"
 	mult_label = _label(150, self)
 	_place(mult_label, Vector2(0, 228), Vector2(400, 180))
@@ -155,8 +156,13 @@ func stop() -> void:
 	visible = false
 
 
-func start(star_count: int, coins: int, seed_value: int) -> void:
+## `boost` is added to every segment; it comes from a win streak.
+func start(star_count: int, coins: int, seed_value: int, boost := 0) -> void:
 	stop()
+	segments = SEGMENTS.map(func(v): return v + boost)
+	wheel.segments = segments
+	wheel.queue_redraw()
+	prompt.text = "TAP TO SPIN" if boost == 0 else "WIN STREAK: ALL +%d\nTAP TO SPIN" % boost
 	rng.seed = seed_value
 	visible = true
 	phase = Phase.INTRO
@@ -211,7 +217,7 @@ func tap() -> void:
 	sequence = create_tween()
 	sequence.tween_property(prompt, "scale", Vector2.ZERO, 0.15)
 	sequence.parallel().tween_property(wheel, "rotation", target, 3.4).set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
-	sequence.tween_callback(_landed.bind(SEGMENTS[landed]))
+	sequence.tween_callback(_landed.bind(segments[landed]))
 
 
 func _landed(multiplier: int) -> void:

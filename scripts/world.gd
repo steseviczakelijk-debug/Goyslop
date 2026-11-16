@@ -25,6 +25,7 @@ var boss_node: Node3D
 var boss_label: Label3D
 var enemy_mm: MultiMesh
 var armored_mm: MultiMesh
+var gold_mm: MultiMesh
 var bullet_mm: MultiMesh
 var trail_mm: MultiMesh
 var soldier_mm: MultiMesh
@@ -50,6 +51,15 @@ var puffs: Particles
 var fallen: Particles   # orcs knocked off their feet
 var fallen_archers: Particles
 var fallen_armored: Particles
+var fallen_gold: Particles
+var broken_fx: Particles      # what is left of a barrel
+var chest_fx: Particles       # the chest springing open
+var prop_meshes := {}
+var prop_views := {}          # prop id -> {node, label}
+var buff_meshes := {}
+var hero_sprite: MeshInstance3D
+var hero_mat: ShaderMaterial
+var hero_recoil := 0.0
 var sparks: Particles
 var confetti: Particles
 var coins_fx: Particles
@@ -343,6 +353,9 @@ func _build_world() -> void:
 	shadow_mm = _multimesh(_blob_mesh(0.75), B.MAX_SHOWN)
 	enemy_mm = _multimesh(_unit_mesh("res://assets/orc.png", 1.25, 2), B.MAX_ENEMIES, true)
 	armored_mm = _multimesh(_unit_mesh("res://assets/armored_orc.png", 1.65, 4), B.MAX_ENEMIES, true)
+	gold_mm = _multimesh(_unit_mesh("res://assets/gold_orc.png", 1.5, 2), 32, true)
+	prop_meshes = {"barrel": _sprite_mesh("res://assets/barrel.png", 1.7), "chest": _sprite_mesh("res://assets/chest.png", 1.5)}
+	buff_meshes = {"rate": _sprite_mesh("res://assets/ui_up_rate.png", 1.2), "dmg": _sprite_mesh("res://assets/ui_up_damage.png", 1.2)}
 	soldier_mm = _multimesh(_unit_mesh("res://assets/archer.png", 1.45, 4), B.MAX_SHOWN, true)
 	slot_recoil.resize(B.MAX_SHOWN)
 	slot_pop.resize(B.MAX_SHOWN)
@@ -382,6 +395,10 @@ func _build_world() -> void:
 	squad_label = _label3d(64)
 	squad_label.render_priority = 2
 	add_child(squad_label)
+	var hero_mesh := _unit_mesh("res://assets/hero.png", 2.0, 4)
+	hero_mat = hero_mesh.material
+	hero_sprite = _instance(hero_mesh)
+	hero_sprite.visible = false
 
 	boss_node = Node3D.new()
 	_instance(_blob_mesh(5.0), Vector3(0, 0.04, 0), boss_node)
@@ -416,6 +433,13 @@ func _build_world() -> void:
 	fallen_armored = _particles("res://assets/armored_orc_fall.png", 40)
 	fallen_armored.gravity = 16.0
 	fallen_armored.shrinks = true
+	fallen_gold = _particles("res://assets/gold_orc_fall.png", 8)
+	fallen_gold.gravity = 14.0
+	fallen_gold.shrinks = true
+	broken_fx = _particles("res://assets/barrel_broken.png", 8)
+	broken_fx.shrinks = true
+	chest_fx = _particles("res://assets/chest_open.png", 8)
+	chest_fx.shrinks = true
 	fallen_archers = _particles("res://assets/archer_fall.png", 40)
 	fallen_archers.gravity = 16.0
 	fallen_archers.shrinks = true
@@ -478,6 +502,7 @@ func render(sim: Sim, time: float) -> void:
 	enemy_shadow_mm.visible_instance_count = sim.e_count
 	var plain := 0
 	var armored := 0
+	var gold := 0
 	for i in sim.e_count:
 		var seed := sim.e_seed[i]
 		var phase := time * (9.0 + seed * 3.0) + seed * 40.0
@@ -497,6 +522,13 @@ func render(sim: Sim, time: float) -> void:
 			armored_mm.set_instance_transform(armored, t)
 			armored_mm.set_instance_custom_data(armored, Color(sim.e_flash[i], lean, pose, 0))
 			armored += 1
+		elif sim.e_armored[i] == 2:
+			t.basis = Basis.from_scale(Vector3(2.0 - squash, squash, 1.0))
+			t.origin = Vector3(sim.e_x[i], absf(sin(phase * 1.3)) * 0.2, sim.e_z[i])
+			if gold < 32:
+				gold_mm.set_instance_transform(gold, t)
+				gold_mm.set_instance_custom_data(gold, Color(sim.e_flash[i], sin(phase) * 0.08, 1.0 if sin(phase * 1.3) > 0.0 else 0.0, 0))
+				gold += 1
 		else:
 			var big := 0.88 + seed * 0.28
 			t.basis = Basis.from_scale(Vector3((2.0 - squash) * big, squash * big, 1.0))
@@ -509,6 +541,7 @@ func render(sim: Sim, time: float) -> void:
 		enemy_shadow_mm.set_instance_transform(i, t)
 	enemy_mm.visible_instance_count = plain
 	armored_mm.visible_instance_count = armored
+	gold_mm.visible_instance_count = gold
 
 	bullet_mm.visible_instance_count = sim.b_count
 	trail_mm.visible_instance_count = sim.b_count
@@ -550,7 +583,15 @@ func render(sim: Sim, time: float) -> void:
 	var count_text := str(sim.soldiers)
 	squad_label.text = count_text
 	squad_label.pixel_size = 0.009 * minf(1.0, 2.6 / count_text.length())
-	squad_label.position = Vector3(sim.squad_x, 2.3, -sim.squad_r - 0.3)
+	squad_label.position = Vector3(sim.squad_x, 3.1 if sim.hero else 2.3, -sim.squad_r - 0.3)
+	# The hero leads from the front, a head taller than the rest.
+	hero_sprite.visible = sim.hero and sim.soldiers > 0
+	if hero_sprite.visible:
+		hero_recoil = maxf(0.0, hero_recoil - dt * 3.0)
+		var stride := sin(time * 7.0)
+		hero_sprite.position = Vector3(sim.squad_x, absf(stride) * (0.5 if cheering else 0.06), -sim.squad_r - 0.25)
+		hero_mat.set_shader_parameter("pose", 3.0 if cheering else (1.0 if hero_recoil > 0.3 else (2.0 if stride > 0.0 else 0.0)))
+		hero_mat.set_shader_parameter("flash", hero_recoil * 0.5)
 	if sim.soldiers != count_before:
 		count_before = sim.soldiers
 		count_pulse = 1.0
@@ -625,6 +666,7 @@ func render(sim: Sim, time: float) -> void:
 			# lies in front of his feet.
 			boss_sprite.position = Vector3(0, 0, 2.3)
 			boss_mat.set_shader_parameter("tilt", 0.0)
+	_sync_props(sim)
 	_sync_gates(sim, dt)
 	_update_effects(dt)
 
@@ -636,12 +678,39 @@ func apply_fx(sim: Sim) -> void:
 		match e[0]:
 			"shot":
 				slot_recoil[e[1]] = 1.0
+			"prop_break":
+				var spot := Vector3(e[2], 0.0, e[3])
+				for k in 8:
+					puffs.emit(spot + Vector3(0, 0.8, 0), Vector3(randf_range(-2.5, 2.5), randf_range(0.5, 3.0), randf_range(-1.0, 1.0)), 0.5, 1.1, Color(0.9, 0.85, 0.75, 0.95), 0.0, randf_range(-2.0, 2.0))
+				if e[1] == "barrel":
+					broken_fx.emit(spot + Vector3(0, 0.7, 0), Vector3.ZERO, 0.8, 1.9)
+					_float_text("+%d" % e[4], spot + Vector3(0, 2.4, 0), Color(0.6, 0.9, 1.0))
+				else:
+					chest_fx.emit(spot + Vector3(0, 0.85, 0), Vector3(0, 1.5, 0), 0.9, 2.0)
+					_float_text("+%d" % e[4], spot + Vector3(0, 2.6, 0), Color(1.0, 0.85, 0.25))
+					for k in 14:
+						coins_fx.emit(spot + Vector3(0, 1.0, 0), Vector3(randf_range(-3.0, 3.0), randf_range(5.0, 9.0), randf_range(0.0, 3.0)), 1.0, 0.5)
+					for k in 5:
+						coin_flights.append(cam.unproject_position(spot + Vector3(randf_range(-1.0, 1.0), 1.5, 0)))
+				add_shake(0.1)
+			"hero_shot":
+				hero_recoil = 1.0
+				sparks.emit(Vector3(sim.squad_x, 1.3, -sim.squad_r - 0.9), Vector3.ZERO, 0.15, 1.5, Color(0.6, 0.8, 1.0), 0.0, 5.0)
 			"kill":
+				if e[3] == 2:
+					var gold_at := Vector3(e[1], 1.0, e[2])
+					for k in 24:
+						coins_fx.emit(gold_at, Vector3(randf_range(-4.0, 4.0), randf_range(6.0, 11.0), randf_range(-1.0, 4.0)), 1.3, 0.55)
+					for k in 8:
+						coin_flights.append(cam.unproject_position(gold_at + Vector3(randf_range(-1.5, 1.5), randf_range(0.0, 2.0), 0)))
+					fallen_gold.emit(gold_at, Vector3(randf_range(-1.0, 1.0), 6.0, -5.0), 0.7, 2.4, Color.WHITE, 0.0, randf_range(-5.0, 5.0))
+					add_shake(0.2)
+					continue
 				kills += 1
 				if kills <= 10:
 					var at := Vector3(e[1], 0.6, e[2])
 					# The orc is thrown backward, tumbling, and leaves a puff behind.
-					var pool := fallen_armored if e[3] else fallen
+					var pool: Particles = fallen_armored if e[3] == 1 else fallen
 					pool.emit(at + Vector3(0, 0.2, 0), Vector3(randf_range(-2.0, 2.0), randf_range(4.5, 6.5), randf_range(-7.0, -4.0)), 0.5, 2.1 if e[3] else 1.7, Color.WHITE, 0.0, randf_range(-7.0, 7.0))
 					puffs.emit(at, Vector3(randf_range(-1.0, 1.0), randf_range(0.5, 1.5), 0.0), 0.4, 0.75, Color(0.8, 1.0, 0.65, 0.95), 0.0, randf_range(-2.0, 2.0))
 					if kills <= 4:
@@ -663,7 +732,8 @@ func apply_fx(sim: Sim) -> void:
 				var tint := Color(0.4, 0.75, 1.0) if good else Color(1.0, 0.3, 0.25)
 				for k in 14:
 					sparks.emit(Vector3(e[1] + randf_range(-1.6, 1.6), randf_range(0.8, 2.6), -0.3), Vector3(randf_range(-2.0, 2.0), randf_range(1.0, 4.0), randf_range(-1.0, 1.0)), 0.45, 0.55, tint.lerp(Color.WHITE, 0.4), 0.0, randf_range(-5.0, 5.0))
-				_float_text("%+d" % e[2], Vector3(sim.squad_x, 3.2, -sim.squad_r - 0.3), Color(0.6, 0.9, 1.0) if good else Color(1.0, 0.4, 0.35))
+				var note: String = e[4] if e.size() > 4 and e[4] != "" else "%+d" % e[2]
+				_float_text(note, Vector3(sim.squad_x, 3.2, -sim.squad_r - 0.3), Color(0.6, 0.9, 1.0) if good else Color(1.0, 0.4, 0.35))
 				if not good:
 					add_shake(0.15)
 			"grow":
@@ -728,6 +798,9 @@ func _update_effects(dt: float) -> void:
 	fallen.update(dt)
 	fallen_archers.update(dt)
 	fallen_armored.update(dt)
+	fallen_gold.update(dt)
+	broken_fx.update(dt)
+	chest_fx.update(dt)
 	puffs.update(dt)
 	sparks.update(dt)
 	confetti.update(dt)
@@ -770,6 +843,9 @@ func _sync_gates(sim: Sim, dt: float) -> void:
 			if g.op == "mul":
 				v.label.text = "x%d" % g.value
 				v.banner.mesh = gate_meshes.purple
+			elif g.op == "rate" or g.op == "dmg":
+				v.label.text = "+%d%%" % g.value
+				v.banner.mesh = gate_meshes.purple
 			else:
 				v.label.text = "%+d" % g.value
 				v.banner.mesh = gate_meshes.blue if g.value > 0 else gate_meshes.red
@@ -792,4 +868,31 @@ func _make_gate(g: Sim.Gate) -> Dictionary:
 	var label := _label3d(120)
 	label.position = Vector3(0, GATE_BASE + 1.2, 0.1)
 	node.add_child(label)
+	if buff_meshes.has(g.op):
+		# The icon on top of the banner says what this gate improves.
+		label.font_size = 90
+		label.position.y = GATE_BASE + 0.95
+		_instance(buff_meshes[g.op], Vector3(0, GATE_BASE + 1.45, 0.12), node)
 	return {"node": node, "banner": banner, "label": label, "value": null}
+
+
+func _sync_props(sim: Sim) -> void:
+	var alive := {}
+	for p in sim.props:
+		alive[p.id] = true
+		if not prop_views.has(p.id):
+			var node := Node3D.new()
+			add_child(node)
+			_instance(_blob_mesh(2.0), Vector3(0, 0.04, 0), node)
+			_instance(prop_meshes[p.kind], Vector3.ZERO, node)
+			var label := _label3d(84)
+			label.position = Vector3(0, 0.95 if p.kind == "barrel" else 2.0, 0.2)
+			node.add_child(label)
+			prop_views[p.id] = {"node": node, "label": label}
+		var v: Dictionary = prop_views[p.id]
+		v.node.position = Vector3(p.x, 0, p.z)
+		v.label.text = str(int(ceilf(p.hp)))
+	for id in prop_views.keys():
+		if not alive.has(id):
+			prop_views[id].node.queue_free()
+			prop_views.erase(id)

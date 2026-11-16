@@ -25,6 +25,10 @@ var title_banner: TextureRect
 var result_button: TextureRect
 var win_screen: WinScreen
 var meta: MetaUi
+var combo_badge: TextureRect
+var combo_label: Label
+var combo_note: Label
+var combo_shown := 0
 var sub_label: Label
 var button_label: Label
 var perf_button: Button
@@ -142,6 +146,25 @@ func _ready() -> void:
 	sub_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	sub_label.offset_top = 110
 
+	combo_badge = _hud_image(root, "res://assets/ui_combo.png", 120, 372)
+	combo_badge.anchor_left = 1.0
+	combo_badge.anchor_right = 1.0
+	combo_badge.offset_left = -140
+	combo_badge.offset_right = -20
+	combo_badge.pivot_offset = Vector2(60, 63)
+	combo_badge.visible = false
+	combo_label = _hud_label(combo_badge, 38)
+	combo_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	combo_note = _hud_label(root, 30, Color(1.0, 0.85, 0.25))
+	combo_note.anchor_left = 1.0
+	combo_note.anchor_right = 1.0
+	combo_note.offset_left = -300
+	combo_note.offset_right = -16
+	combo_note.offset_top = 500
+	combo_note.offset_bottom = 540
+	combo_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	combo_note.modulate.a = 0.0
+
 	meta = MetaUi.new()
 	root.add_child(meta)
 
@@ -205,13 +228,33 @@ func _move_result_button(top: float) -> void:
 	result_button.offset_bottom = top + 400.0 * 196.0 / 768.0
 
 
+## Shows the running kill combo; it bumps every time it grows.
+func set_combo(count: int) -> void:
+	combo_badge.visible = count >= 5
+	if count != combo_shown:
+		if count > combo_shown:
+			combo_badge.scale = Vector2(1.25, 1.25)
+			create_tween().tween_property(combo_badge, "scale", Vector2.ONE, 0.12)
+		combo_shown = count
+		combo_label.text = "x%d" % count
+
+
+## A combo ended and paid out.
+func combo_done(count: int, bonus: int) -> void:
+	combo_note.text = "COMBO x%d  +%d" % [count, bonus]
+	combo_note.modulate.a = 1.0
+	var t := create_tween()
+	t.tween_interval(1.0)
+	t.tween_property(combo_note, "modulate:a", 0.0, 0.5)
+
+
 ## The win screen: the title, then stars, coins and the wheel; the button to
 ## continue only appears once the reward has been handed out.
-func show_win(stars: int, earned: int, seed_value: int) -> void:
+func show_win(stars: int, earned: int, seed_value: int, boost := 0) -> void:
 	show_overlay("VICTORY", "NEXT LEVEL", "")
 	result_button.visible = false
 	_move_result_button(360)
-	win_screen.start(stars, earned, seed_value)
+	win_screen.start(stars, earned, seed_value, boost)
 
 
 func hide_overlay() -> void:

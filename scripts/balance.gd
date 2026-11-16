@@ -58,6 +58,39 @@ const BOSS_SMASH_HALF := 1.7     # half-width of the impact
 const BOSS_SMASH_SHARE := 0.35   # part of the squad a direct hit removes
 const BOSS_SMASH_MIN := 4
 
+# Things to shoot between the gates and the wave
+const PROPS_FROM_LEVEL := 3
+const PROP_CHANCE := 0.4
+const PROP_R := 0.75
+const CHEST_SHARE := 0.35       # part of the props that are chests
+const BARREL_HP := 2.0          # times the expected army
+const CHEST_HP := 3.0
+const BARREL_REWARD := 0.15     # soldiers freed, as part of the expected army
+
+# The golden orc: rare, harmless, and a shower of coins when shot down
+const GOLD_FROM_LEVEL := 2
+const GOLD_CHANCE := 0.15       # per wave
+const GOLD_HP := 4.0            # times a normal orc of the same wave
+const GOLD_COINS := 60
+
+# Gates that change how you shoot for the rest of the level
+const BUFF_GATES_FROM_LEVEL := 4
+const BUFF_GATE_CHANCE := 0.2
+const BUFF_GATE_PERCENT := 25
+
+# The hero archer joins from this level and fires a burst every few seconds
+const HERO_FROM_LEVEL := 5
+const HERO_INTERVAL := 4.0
+const HERO_ARROWS := 5
+const HERO_POWER := 0.8         # each arrow, as part of a full volley
+
+# Momentum
+const COMBO_WINDOW := 1.2       # seconds between kills before a combo ends
+const COMBO_MIN := 20           # shortest combo that pays a bonus
+const COMBO_PER_COIN := 10      # kills per bonus coin
+const STREAK_PER_BOOST := 3     # wins in a row per +1 on the wheel
+const STREAK_MAX_BOOST := 2
+
 # Upgrades bought with coins. `step` is what one level adds.
 const UPGRADES := [
 	{"key": "up_army", "name": "ARMY", "icon": "res://assets/ui_up_army.png", "base": 150, "step": 1.0, "text": "Start with %d archers"},
@@ -88,7 +121,7 @@ const WAVE_MAX := 2.8
 const WAVE_CAP := 350
 # A level is built around the army the perfect route yields. The troll is sized
 # so that an army this far below perfect still just beats him.
-const ALLOWED_DEVIATION := 0.28
+const ALLOWED_DEVIATION := 0.15
 const BOSS_HP_PER_SOLDIER := 75.0  # health one soldier gets through in a boss fight
 const PERFECT_KEEPS := 0.75        # calibration: waves may cost the perfect route at most the rest
 const CALIBRATED_LEVELS := 100     # levels measured in scripts/level_table.gd

@@ -13,6 +13,8 @@ const GOLD := Color(1.0, 0.82, 0.2)
 
 var start: Control
 var dot: TextureRect
+var streak_row: Control
+var streak_label: Label
 var hand: TextureRect
 var hand_label: Label
 var clock := 0.0
@@ -110,6 +112,14 @@ func _build_start() -> void:
 	text.text = "UPGRADES"
 	dot = _pic("res://assets/ui_dot.png", up)
 	_box(dot, Vector2(262, -18), Vector2(52, 52))
+	streak_row = Control.new()
+	streak_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	start.add_child(streak_row)
+	_box(streak_row, Vector2(22, 306), Vector2(360, 60))
+	_box(_pic("res://assets/ui_flame.png", streak_row), Vector2(4, 0), Vector2(48, 58))
+	streak_label = _label(30, streak_row, Color(1.0, 0.75, 0.3))
+	streak_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_box(streak_label, Vector2(62, 8), Vector2(300, 44))
 	hand_label = _label(34, start)
 	_center(hand_label, Vector2(0, 200), Vector2(600, 50))
 	hand_label.text = "DRAG TO MOVE"
@@ -117,8 +127,10 @@ func _build_start() -> void:
 	_center(hand, Vector2(0, 290), Vector2(110, 110))
 
 
-func show_start(can_buy: bool, teach: bool) -> void:
+func show_start(can_buy: bool, teach: bool, streak := 0) -> void:
 	start.visible = true
+	streak_row.visible = streak >= 2
+	streak_label.text = "%d WINS IN A ROW" % streak
 	dot.visible = can_buy
 	hand.visible = teach
 	hand_label.visible = teach
